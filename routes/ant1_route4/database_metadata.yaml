@@ -1,0 +1,13 @@
+%YAML:1.0
+---
+metadata:
+   time: "2020-06-19 16:45:59"
+   project_git_commit: dcf04111
+   bob_robotics_git_commit: dcf04111
+   type: route
+   camera:
+      name: opengl
+      resolution: [ 720, 150 ]
+      isPanoramic: 0
+   needsUnwrapping: 0
+   isGreyscale: 0
