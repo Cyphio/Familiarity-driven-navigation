@@ -1,0 +1,17 @@
+%YAML:1.0
+---
+metadata:
+   time: "2020-06-22 13:37:05"
+   project_git_commit: "16b78eff-dirty"
+   bob_robotics_git_commit: "16b78eff-dirty"
+   type: grid
+   grid:
+      beginAtMM: [ 0., 0., 1800. ]
+      separationMM: [ 100., 100., 0. ]
+      size: [ 101, 101, 1 ]
+   camera:
+      name: opengl
+      resolution: [ 720, 150 ]
+      isPanoramic: 0
+   needsUnwrapping: 0
+   isGreyscale: 0
