@@ -1,10 +1,18 @@
 import imageio
 import glob
 
-images = []
+class PerfectMemory:
+    route_views = []
 
-for image_path in glob.glob("ant_world_image_databases/routes/ant1_route1/*.png"):
-    image = imageio.imread(image_path)
-    images.append(image)
+    def __init__(self, path):
+        for view_path in glob.glob(path+"/*.png"):
+            view = imageio.imread(view_path)
+            self.route_views.append(view)
 
-print(len(images))
+    def get_views(self):
+        return self.route_views
+
+
+if __name__ == "__main__":
+    pm = PerfectMemory("ant_world_image_databases/routes/ant1_route1")
+    print(len(pm.get_views()))
