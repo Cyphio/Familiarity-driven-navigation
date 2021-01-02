@@ -16,21 +16,17 @@ class Navigate:
         self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1]), int(self.route_data["Z [mm]"].iloc[-1])]
 
     def run(self, vis_deg, rot_deg):
-
-        print(self.current)
-        view = plt.imread(self.route_path + self.route_data['Filename'][0])
-        #row = self.grid_data.loc[lambda df: df['X [mm]'] == self.current[0] and df['Y [mm]'] == self.current[1] and df['Z [mm]'] == self.current[3]:]
-        #print(self.grid_data["Filename"][self.grid_data["X [mm]"] == self.current[0]])
-        #print(self.grid_data.loc[(self.grid_data['X [mm]'] == self.current[0]) & (self.grid_data['Y [mm]'] == self.current[1])])
+        view = plt.imread(self.grid_path + self.grid_data['Filename'][0])
 
         familiarity_dict = {}
-
         for i in np.arange(0, vis_deg, rot_deg):
-            rotated_view = np.roll(view, i)
-            ssd = np.sum((view-rotated_view)**2)
+            rotated_view = np.roll(view, int(view.shape[1]*((i/360)*3)))
+            ssd = np.sum((view - rotated_view) ** 2)
             familiarity_dict[i] = ssd
-
         print(familiarity_dict)
+
+        plt.plot(range(len(familiarity_dict)), familiarity_dict.values())
+        plt.show()
 
 if __name__ == "__main__":
     nav = Navigate("ant1_route1")
