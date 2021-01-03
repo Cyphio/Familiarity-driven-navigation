@@ -1,11 +1,7 @@
 import numpy as np
-import math
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
-import sys
-
-np.set_printoptions(threshold=sys.maxsize)
 
 class Navigate:
 
@@ -26,15 +22,16 @@ class Navigate:
         familiarity_dict = {}
         for i in np.arange(0, vis_deg, rot_deg):
             familiarity_dict[i] = self.get_familiarity(view, i)
+
         print(familiarity_dict)
 
-        plt.plot(range(len(familiarity_dict)), familiarity_dict.values())
+        plt.plot(familiarity_dict.keys(), familiarity_dict.values())
         plt.show()
 
     def get_familiarity(self, view, i):
-        rotated_view = np.roll(view, int(view.shape[1] * ((i / 360) * 3)), axis=1)
-        return np.sum((view.astype('float') - rotated_view.astype(float)) ** 2)
+        rotated_view = np.roll(view, int(view.shape[1] * (i / 360)), axis=1)
+        return np.square(np.subtract(view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate("ant1_route1")
-    nav.run(360, 2)
+    nav = Navigate("ant1_route2")
+    nav.run(360, 4)
