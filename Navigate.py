@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
+import os
 
 class Navigate:
 
-    def __init__(self, route):
+    def __init__(self, route, vis_deg, rot_deg):
         self.grid_path = "ant_world_image_databases/grid/"
         self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace = True)
 
@@ -15,23 +16,36 @@ class Navigate:
         self.current = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0]), int(self.route_data["Z [mm]"].iloc[0])]
         self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1]), int(self.route_data["Z [mm]"].iloc[-1])]
 
-    def run(self, vis_deg, rot_deg):
-        view = cv2.imread(self.grid_path + self.grid_data['Filename'][0])
-        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
+        self.vis_deg = vis_deg
+        self.rot_deg = rot_deg
 
-        familiarity_dict = {}
-        for i in np.arange(0, vis_deg, rot_deg):
-            familiarity_dict[i] = self.get_familiarity(view, i)
+    def database_analysis(self):
+        # grid_familiarity = {}
+        for filename in self.grid_data['Filename'][:50]:
+            grid_view = cv2.imread(self.grid_path + filename)
+            grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
+            print(self.most_familiar_bearing(grid_view))
 
-        print(familiarity_dict)
+    def most_familiar_bearing(self, curr_view):
+        route_familiarity = []
+        for filename in self.route_data['Filename'][:5]:
+            route_view = cv2.imread(self.route_path + filename)
+            route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
 
-        plt.plot(familiarity_dict.keys(), familiarity_dict.values())
-        plt.show()
+            view_familiarity = {}
+            for i in np.arange(0, self.vis_deg, self.rot_deg):
+                view_familiarity[i] = self.get_familiarity(curr_view, route_view, i)
 
-    def get_familiarity(self, view, i):
-        rotated_view = np.roll(view, int(view.shape[1] * (i / 360)), axis=1)
-        return np.square(np.subtract(view, rotated_view)).mean()
+            route_familiarity.append(view_familiarity)
+        return min([min(dict, key=dict.get) for dict in route_familiarity])
+        #print(familiarity_dict)
+        #plt.plot(familiarity_dict.keys(), familiarity_dict.values())
+        #plt.show()
+
+    def get_familiarity(self, curr_view, route_view, i):
+        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
+        return np.square(np.subtract(route_view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate("ant1_route2")
-    nav.run(360, 4)
+    nav = Navigate("ant1_route2", 360, 4)
+    nav.database_analysis()
