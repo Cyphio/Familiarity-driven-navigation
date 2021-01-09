@@ -7,7 +7,7 @@ from pyprobar import probar
 
 class Navigate:
 
-    def __init__(self, route, vis_deg, rot_deg):
+    def __init__(self, route, vis_deg, rot_deg, buffer):
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
 
         self.grid_path = "ant_world_image_databases/grid/"
@@ -16,9 +16,11 @@ class Navigate:
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
         self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace = True)
 
+        self.route = [[x / 10 for x in self.route_data['X [mm]'].tolist()], [y / 10 for y in self.route_data["Y [mm]"].tolist()]]
         self.start = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0])]
         self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1])]
-        self.route = [[x/10 for x in self.route_data['X [mm]'].tolist()], [y/10 for y in self.route_data["Y [mm]"].tolist()]]
+        self.grid_bounds = [[int((math.floor(((min(self.route[0])-buffer)/100))*100)/100), int((math.floor(((min(self.route[1])-buffer)/100))*100)/100)],
+                            [int((math.floor(((max(self.route[0])-buffer)/100))*100)/100), int((math.floor(((max(self.route[1])-buffer)/100))*100)/100)]]
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -26,22 +28,21 @@ class Navigate:
     def database_analysis(self, x, y):
         grid_view_familiarity = []
 
-        for i in probar(np.linspace(0, 100, num=x, endpoint=True, dtype=int)):
-            for j in np.linspace(0, 100, num=y, endpoint=True, dtype=int):
+        for i in probar(np.linspace(self.grid_bounds[0][0], self.grid_bounds[1][0], num=x, endpoint=True, dtype=int)):
+            for j in np.linspace(self.grid_bounds[0][1], self.grid_bounds[1][1], num=y, endpoint=True, dtype=int):
                 filename = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == i) & (self.grid_data['Grid Y'] == j)][0]
                 grid_view = cv2.imread(self.grid_path + filename)
                 grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
                 grid_view_familiarity.append(self.most_familiar_bearing(grid_view))
         plt.imshow(self.topdown_view)
 
-        print(self.route)
         plt.plot(self.route[0], self.route[1], linewidth=2, color='r')
 
-        x_coor, y_coor = np.meshgrid(np.linspace(0, 1000, num=x, endpoint=True, dtype=int), np.linspace(0, 1000, num=y, endpoint=True, dtype=int))
+        x_coor, y_coor = np.meshgrid(np.linspace(self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, num=x, endpoint=True, dtype=int),
+                                     np.linspace(self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100, num=y, endpoint=True, dtype=int))
         u = [math.cos(n) for n in grid_view_familiarity]
         v = [math.sin(n) for n in grid_view_familiarity]
         plt.quiver(x_coor, y_coor, u, v, color='w')
-
 
         plt.show()
 
@@ -66,5 +67,5 @@ class Navigate:
         return np.square(np.subtract(route_view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate("ant1_route1", 360, 4)
+    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4, buffer=0)
     nav.database_analysis(10, 10)
