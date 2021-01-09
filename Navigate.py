@@ -2,6 +2,7 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 import cv2
 from pyprobar import probar
 
@@ -20,7 +21,7 @@ class Navigate:
         self.start = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0])]
         self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1])]
         self.grid_bounds = [[int((math.floor(((min(self.route[0])-buffer)/100))*100)/100), int((math.floor(((min(self.route[1])-buffer)/100))*100)/100)],
-                            [int((math.floor(((max(self.route[0])-buffer)/100))*100)/100), int((math.floor(((max(self.route[1])-buffer)/100))*100)/100)]]
+                            [int((math.ceil(((max(self.route[0])-buffer)/100))*100)/100), int((math.ceil(((max(self.route[1])-buffer)/100))*100)/100)]]
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -34,15 +35,18 @@ class Navigate:
                 grid_view = cv2.imread(self.grid_path + filename)
                 grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
                 grid_view_familiarity.append(self.most_familiar_bearing(grid_view))
-        plt.imshow(self.topdown_view)
+
+        plt.subplots()
+
+        plt.imshow(self.topdown_view, extent=[self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100])
 
         plt.plot(self.route[0], self.route[1], linewidth=2, color='r')
 
-        x_coor, y_coor = np.meshgrid(np.linspace(self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, num=x, endpoint=True, dtype=int),
+        X, Y = np.meshgrid(np.linspace(self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, num=x, endpoint=True, dtype=int),
                                      np.linspace(self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100, num=y, endpoint=True, dtype=int))
         u = [math.cos(n) for n in grid_view_familiarity]
         v = [math.sin(n) for n in grid_view_familiarity]
-        plt.quiver(x_coor, y_coor, u, v, color='w')
+        plt.quiver(X, Y, u, v, color='w')
 
         plt.show()
 
@@ -67,5 +71,5 @@ class Navigate:
         return np.square(np.subtract(route_view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4, buffer=0)
-    nav.database_analysis(10, 10)
+    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4, buffer=25)
+    nav.database_analysis(10, 30)
