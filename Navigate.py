@@ -2,7 +2,6 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.patches as patches
 import cv2
 from pyprobar import probar
 
@@ -36,17 +35,21 @@ class Navigate:
                 grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
                 grid_view_familiarity.append(self.most_familiar_bearing(grid_view))
 
-        plt.subplots()
+        fig, ax = plt.subplots()
 
-        plt.imshow(self.topdown_view, extent=[self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100])
+        ax.imshow(self.topdown_view)
 
-        plt.plot(self.route[0], self.route[1], linewidth=2, color='r')
+        ax.plot(self.route[0], self.route[1], linewidth=2, color='r')
 
-        X, Y = np.meshgrid(np.linspace(self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, num=x, endpoint=True, dtype=int),
-                                     np.linspace(self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100, num=y, endpoint=True, dtype=int))
+        X, Y = np.meshgrid(
+            np.linspace(self.grid_bounds[0][0] * 100, self.grid_bounds[1][0] * 100, num=x, endpoint=True, dtype=int),
+            np.linspace(self.grid_bounds[0][1] * 100, self.grid_bounds[1][1] * 100, num=y, endpoint=True, dtype=int))
         u = [math.cos(n) for n in grid_view_familiarity]
         v = [math.sin(n) for n in grid_view_familiarity]
-        plt.quiver(X, Y, u, v, color='w')
+        ax.quiver(X, Y, u, v, scale=7., zorder=3, color='w', width=0.007, headwidth=15., headlength=8., headaxislength=4.)
+
+        ax.set_xlim([self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100])
+        ax.set_ylim([self.grid_bounds[0][1] * 100, self.grid_bounds[1][1] * 100])
 
         plt.show()
 
@@ -72,4 +75,4 @@ class Navigate:
 
 if __name__ == "__main__":
     nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4, buffer=25)
-    nav.database_analysis(10, 30)
+    nav.database_analysis(5, 15)
