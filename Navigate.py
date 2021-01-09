@@ -24,19 +24,19 @@ class Navigate:
     def database_analysis(self, x, y):
         grid_view_familiarity = []
 
-        for i in np.arange(0, 100, math.floor(100/x)):
-            for j in np.arange(0, 100, math.floor(100/y)):
+        for i in np.linspace(0, 100, num=x, endpoint=True, dtype=int):
+            for j in np.linspace(0, 100, num=y, endpoint=True, dtype=int):
                 filename = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == i) & (self.grid_data['Grid Y'] == j)][0]
                 grid_view = cv2.imread(self.grid_path + filename)
                 grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
                 grid_view_familiarity.append(self.most_familiar_bearing(grid_view))
+        plt.imshow(self.topdown_view)
 
-        x_coor, y_coor = np.meshgrid(np.arange(0, 1000, math.floor(1000/x)), np.arange(0, 1000, math.floor(1000/y)))
+        x_coor, y_coor = np.meshgrid(np.linspace(0, 1000, num=x, endpoint=True, dtype=int), np.linspace(0, 1000, num=y, endpoint=True, dtype=int))
         u = [math.cos(n) for n in grid_view_familiarity]
         v = [math.sin(n) for n in grid_view_familiarity]
+        plt.quiver(x_coor, y_coor, u, v, color='w')
 
-        plt.imshow(self.topdown_view)
-        plt.quiver(x_coor, y_coor, u, v)
         plt.show()
 
     def most_familiar_bearing(self, curr_view):
@@ -60,5 +60,5 @@ class Navigate:
         return np.square(np.subtract(route_view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate("ant1_route2", 360, 4)
-    nav.database_analysis(10, 10)
+    nav = Navigate("ant1_route1", 360, 4)
+    nav.database_analysis(5, 5)
