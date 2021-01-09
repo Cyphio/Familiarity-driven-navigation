@@ -16,8 +16,9 @@ class Navigate:
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
         self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace = True)
 
-        self.current = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0]), int(self.route_data["Z [mm]"].iloc[0])]
-        self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1]), int(self.route_data["Z [mm]"].iloc[-1])]
+        self.start = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0])]
+        self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1])]
+        self.route = [[x/10 for x in self.route_data['X [mm]'].tolist()], [y/10 for y in self.route_data["Y [mm]"].tolist()]]
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -33,16 +34,20 @@ class Navigate:
                 grid_view_familiarity.append(self.most_familiar_bearing(grid_view))
         plt.imshow(self.topdown_view)
 
+        print(self.route)
+        plt.plot(self.route[0], self.route[1], linewidth=2, color='r')
+
         x_coor, y_coor = np.meshgrid(np.linspace(0, 1000, num=x, endpoint=True, dtype=int), np.linspace(0, 1000, num=y, endpoint=True, dtype=int))
         u = [math.cos(n) for n in grid_view_familiarity]
         v = [math.sin(n) for n in grid_view_familiarity]
         plt.quiver(x_coor, y_coor, u, v, color='w')
 
+
         plt.show()
 
     def most_familiar_bearing(self, curr_view):
         route_familiarity = []
-        for filename in self.route_data['Filename']:
+        for filename in self.route_data['Filename'][:5]:
             route_view = cv2.imread(self.route_path + filename)
             route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
 
