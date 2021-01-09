@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
+from pyprobar import probar
 
 class Navigate:
 
@@ -24,7 +25,7 @@ class Navigate:
     def database_analysis(self, x, y):
         grid_view_familiarity = []
 
-        for i in np.linspace(0, 100, num=x, endpoint=True, dtype=int):
+        for i in probar(np.linspace(0, 100, num=x, endpoint=True, dtype=int)):
             for j in np.linspace(0, 100, num=y, endpoint=True, dtype=int):
                 filename = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == i) & (self.grid_data['Grid Y'] == j)][0]
                 grid_view = cv2.imread(self.grid_path + filename)
@@ -41,12 +42,12 @@ class Navigate:
 
     def most_familiar_bearing(self, curr_view):
         route_familiarity = []
-        for filename in self.route_data['Filename'][:5]:
+        for filename in self.route_data['Filename']:
             route_view = cv2.imread(self.route_path + filename)
             route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
 
             view_familiarity = {}
-            for i in np.arange(0, self.vis_deg, self.rot_deg):
+            for i in np.linspace(0, self.vis_deg, num=self.rot_deg, endpoint=True, dtype=int):
                 view_familiarity[i] = self.get_familiarity(curr_view, route_view, i)
 
             route_familiarity.append(view_familiarity)
@@ -61,4 +62,4 @@ class Navigate:
 
 if __name__ == "__main__":
     nav = Navigate("ant1_route1", 360, 4)
-    nav.database_analysis(5, 5)
+    nav.database_analysis(10, 10)
