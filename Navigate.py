@@ -1,8 +1,8 @@
+import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import cv2
-import os
 
 class Navigate:
 
@@ -19,12 +19,15 @@ class Navigate:
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
 
-    def database_analysis(self):
-        # grid_familiarity = {}
-        for filename in self.grid_data['Filename'][:50]:
-            grid_view = cv2.imread(self.grid_path + filename)
-            grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
-            print(self.most_familiar_bearing(grid_view))
+    def database_analysis(self, x, y):
+        grid_view_familiarity = {}
+        for i in np.arange(0, 100, math.floor(100/x)):
+            for j in np.arange(0, 100, math.floor(100/y)):
+                filename = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == i) & (self.grid_data['Grid Y'] == j)][0]
+                grid_view = cv2.imread(self.grid_path + filename)
+                grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
+                grid_view_familiarity[(i, j)] = self.most_familiar_bearing(grid_view)
+        print(grid_view_familiarity)
 
     def most_familiar_bearing(self, curr_view):
         route_familiarity = []
@@ -48,4 +51,4 @@ class Navigate:
 
 if __name__ == "__main__":
     nav = Navigate("ant1_route2", 360, 4)
-    nav.database_analysis()
+    nav.database_analysis(3, 3)
