@@ -2,6 +2,7 @@ import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
 import cv2
 from pyprobar import probar
 
@@ -9,7 +10,6 @@ class Navigate:
 
     def __init__(self, route, vis_deg, rot_deg, buffer):
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
-
         self.grid_path = "ant_world_image_databases/grid/"
         self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace = True)
 
@@ -20,7 +20,7 @@ class Navigate:
         self.start = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0])]
         self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1])]
         self.grid_bounds = [[int((math.floor(((min(self.route[0])-buffer)/100))*100)/100), int((math.floor(((min(self.route[1])-buffer)/100))*100)/100)],
-                            [int((math.ceil(((max(self.route[0])-buffer)/100))*100)/100), int((math.ceil(((max(self.route[1])-buffer)/100))*100)/100)]]
+                            [int((math.ceil(((max(self.route[0])+buffer)/100))*100)/100), int((math.ceil(((max(self.route[1])+buffer)/100))*100)/100)]]
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -35,9 +35,10 @@ class Navigate:
                 grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
                 grid_view_familiarity.append(self.most_familiar_bearing(grid_view))
 
-        fig, ax = plt.subplots()
+        print(self.topdown_view.shape)
 
-        ax.imshow(self.topdown_view)
+        fig, ax = plt.subplots()
+        img = ax.imshow(self.topdown_view, extent=[self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100], aspect=1)
 
         ax.plot(self.route[0], self.route[1], linewidth=2, color='r')
 
@@ -48,8 +49,16 @@ class Navigate:
         v = [math.sin(n) for n in grid_view_familiarity]
         ax.quiver(X, Y, u, v, scale=7., zorder=3, color='w', width=0.007, headwidth=15., headlength=8., headaxislength=4.)
 
-        ax.set_xlim([self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100])
-        ax.set_ylim([self.grid_bounds[0][1] * 100, self.grid_bounds[1][1] * 100])
+        ax.grid(True)
+
+        ax.xaxis.set_major_locator(MultipleLocator(50))
+        ax.yaxis.set_major_locator(MultipleLocator(50))
+
+        # ax.xaxis.set_minor_locator(AutoMinorLocator(x))
+        # ax.yaxis.set_minor_locator(AutoMinorLocator(y))
+
+        ax.grid(which='major', color='#CCCCCC', linestyle='--')
+        ax.grid(which='minor', color='#CCCCCC', linestyle=':')
 
         plt.show()
 
@@ -74,5 +83,5 @@ class Navigate:
         return np.square(np.subtract(route_view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4, buffer=25)
-    nav.database_analysis(5, 15)
+    nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4, buffer=25)
+    nav.database_analysis(5, 20)
