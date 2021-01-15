@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import (AutoMinorLocator, MultipleLocator)
+import matplotlib.ticker as plticker
 import cv2
 from pyprobar import probar
 
@@ -37,9 +38,17 @@ class Navigate:
 
         print(self.topdown_view.shape)
 
-        fig, ax = plt.subplots()
-        img = ax.imshow(self.topdown_view, extent=[self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100], aspect=1)
+        fig = plt.figure(figsize=(self.grid_bounds[1][0]-self.grid_bounds[0][0], self.grid_bounds[1][1]-self.grid_bounds[0][1]))
+        fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
+        ax = fig.add_subplot()
+        interval = 20.
+        loc = plticker.MultipleLocator(base=interval)
+        ax.xaxis.set_major_locator(loc)
+        ax.yaxis.set_major_locator(loc)
+        ax.grid(which='major', axis='both', linestyle='-')
+
+        img = ax.imshow(self.topdown_view, extent=[self.grid_bounds[0][0]*100, self.grid_bounds[1][0]*100, self.grid_bounds[0][1]*100, self.grid_bounds[1][1]*100])
         ax.plot(self.route[0], self.route[1], linewidth=2, color='r')
 
         X, Y = np.meshgrid(
@@ -48,17 +57,6 @@ class Navigate:
         u = [math.cos(n) for n in grid_view_familiarity]
         v = [math.sin(n) for n in grid_view_familiarity]
         ax.quiver(X, Y, u, v, scale=7., zorder=3, color='w', width=0.007, headwidth=15., headlength=8., headaxislength=4.)
-
-        ax.grid(True)
-
-        ax.xaxis.set_major_locator(MultipleLocator(50))
-        ax.yaxis.set_major_locator(MultipleLocator(50))
-
-        # ax.xaxis.set_minor_locator(AutoMinorLocator(x))
-        # ax.yaxis.set_minor_locator(AutoMinorLocator(y))
-
-        ax.grid(which='major', color='#CCCCCC', linestyle='--')
-        ax.grid(which='minor', color='#CCCCCC', linestyle=':')
 
         plt.show()
 
@@ -83,5 +81,5 @@ class Navigate:
         return np.square(np.subtract(route_view, rotated_view)).mean()
 
 if __name__ == "__main__":
-    nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4, buffer=25)
+    nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4, buffer=0)
     nav.database_analysis(5, 20)
