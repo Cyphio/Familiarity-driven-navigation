@@ -33,7 +33,7 @@ class Navigate:
         for x in probar(x_ticks):
             for y in y_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
-                grid_view_familiarity.append(self.most_familiar_bearing(curr_view_path))
+                grid_view_familiarity.append(self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path))))
 
         fig = plt.figure(figsize=((self.grid_bounds[1][0]-self.grid_bounds[0][0])/100, (self.grid_bounds[1][1]-self.grid_bounds[0][1])/100))
         fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
@@ -56,37 +56,44 @@ class Navigate:
 
         plt.show()
 
-    def most_familiar_bearing(self, curr_view_path):
-        curr_view = cv2.imread(self.grid_path + curr_view_path)
-        curr_view = cv2.cvtColor(curr_view, cv2.COLOR_BGR2GRAY)
-        curr_view = cv2.resize(curr_view, (90, 17))
-        route_familiarity = []
-        for filename in self.route_data['Filename'][::100]:
-            route_view = cv2.imread(self.route_path + filename)
-            route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
-            route_view = cv2.resize(route_view, (90, 17))
-            view_familiarity = {}
-            for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-                view_familiarity[i] = self.get_familiarity(curr_view, route_view, i)
-            route_familiarity.append(view_familiarity)
-        return max([max(x, key=x.get) for x in route_familiarity])
+    # def most_familiar_bearing(self, curr_view_path):
+    #     curr_view = cv2.imread(self.grid_path + curr_view_path)
+    #     curr_view = cv2.cvtColor(curr_view, cv2.COLOR_BGR2GRAY)
+    #     curr_view = cv2.resize(curr_view, (90, 17))
+    #     route_familiarity = {}
+    #     for filename in self.route_data['Filename'][::100]:
+    #         route_view = cv2.imread(self.route_path + filename)
+    #         route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
+    #         route_view = cv2.resize(route_view, (90, 17))
+    #         view_familiarity = {}
+    #         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+    #             view_familiarity[i] = self.get_familiarity(curr_view, route_view, i)
+    #         route_familiarity.append(view_familiarity)
+    #     return max([max(x, key=x.get) for x in route_familiarity])
 
     # def most_familiar_bearing(self, curr_view):
     #     view_familiarity = {}
     #     for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
     #         route_familiarity = []
     #         for filename in self.route_data['Filename'][:5]:
-    #             route_view = cv2.imread(self.route_path + filename)
-    #             route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
-    #             route_view = cv2.resize(route_view, (90, 17))
+    #             route_view = self.downsample(cv2.imread(self.route_path + filename))
     #             route_familiarity.append(self.get_familiarity(curr_view, route_view, i))
     #         view_familiarity[i] = np.average(route_familiarity)
     #     return max(view_familiarity, key=view_familiarity.get)
 
+    def perfect_memory(self, curr_view):
+        view_familiarity = dict.fromkeys(np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int), [])
+        for filename in self.route_data['Filename'][:5]:
+            route_view = self.downsample(cv2.imread(self.route_path + filename))
+            for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+                rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
+                familiarity = -np.square(np.subtract(route_view, rotated_view)).mean()
+                view_familiarity[i].append(familiarity)
+        return max([max(x) for x in view_familiarity.values()])
 
-    def get_familiarity(self, curr_view, route_view, i):
-        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
-        return -np.square(np.subtract(route_view, rotated_view)).mean()
+    def downsample(self, view):
+        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
+        return cv2.resize(view, (90, 17))
 
 if __name__ == "__main__":
     nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4, grid_buffer=0)
