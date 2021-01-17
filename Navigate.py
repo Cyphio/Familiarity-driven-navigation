@@ -1,51 +1,83 @@
+import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.ticker as plticker
 import cv2
-import os
+from pyprobar import probar
+from collections import defaultdict
 
 class Navigate:
 
     def __init__(self, route, vis_deg, rot_deg):
+        self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
         self.grid_path = "ant_world_image_databases/grid/"
         self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace = True)
 
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
         self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace = True)
 
-        self.current = [int(self.route_data['X [mm]'].iloc[0]), int(self.route_data["Y [mm]"].iloc[0]), int(self.route_data["Z [mm]"].iloc[0])]
-        self.goal = [int(self.route_data['X [mm]'].iloc[-1]), int(self.route_data["Y [mm]"].iloc[-1]), int(self.route_data["Z [mm]"].iloc[-1])]
+        self.route = [[x / 10 for x in self.route_data['X [mm]'].tolist()], [y / 10 for y in self.route_data["Y [mm]"].tolist()]]
+        self.start = [int(self.route_data['X [mm]'].iloc[0]/10), int(self.route_data["Y [mm]"].iloc[0]/10)]
+        self.goal = [int(self.route_data['X [mm]'].iloc[-1]/10), int(self.route_data["Y [mm]"].iloc[-1]/10)]
+        self.bounds = [[int((math.floor((min(self.route[0]) / 10)) * 10)), int((math.floor((min(self.route[1]) / 10)) * 10))],
+                            [int((math.ceil((max(self.route[0]) / 10)) * 10)), int((math.ceil((max(self.route[1]) / 10)) * 10))]]
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
 
-    def database_analysis(self):
-        # grid_familiarity = {}
-        for filename in self.grid_data['Filename'][:50]:
-            grid_view = cv2.imread(self.grid_path + filename)
-            grid_view = cv2.cvtColor(grid_view, cv2.COLOR_BGR2GRAY)
-            print(self.most_familiar_bearing(grid_view))
+    def database_analysis(self, spacing, bounds=None):
+        if bounds is not None:
+            self.bounds = bounds
 
-    def most_familiar_bearing(self, curr_view):
-        route_familiarity = []
-        for filename in self.route_data['Filename'][:5]:
-            route_view = cv2.imread(self.route_path + filename)
-            route_view = cv2.cvtColor(route_view, cv2.COLOR_BGR2GRAY)
+        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, step=spacing, dtype=int)
+        y_ticks = np.arange(self.bounds[0][1], self.bounds[1][1] + 1, step=spacing, dtype=int)
 
-            view_familiarity = {}
-            for i in np.arange(0, self.vis_deg, self.rot_deg):
-                view_familiarity[i] = self.get_familiarity(curr_view, route_view, i)
+        grid_view_familiarity = []
+        for x in probar(x_ticks):
+            for y in y_ticks:
+                curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
+                grid_view_familiarity.append(self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path))))
 
-            route_familiarity.append(view_familiarity)
-        return min([min(dict, key=dict.get) for dict in route_familiarity])
-        #print(familiarity_dict)
-        #plt.plot(familiarity_dict.keys(), familiarity_dict.values())
-        #plt.show()
+        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
 
-    def get_familiarity(self, curr_view, route_view, i):
-        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
-        return np.square(np.subtract(route_view, rotated_view)).mean()
+        ax = fig.add_subplot()
+        ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
+        ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
+        ax.grid(which='major', axis='both', linestyle=':')
+
+        img = ax.imshow(self.topdown_view)
+        ax.plot(self.route[0], self.route[1], linewidth=2, color='gold')
+        ax.add_patch(plt.Circle((self.start[0], self.start[1]), 5, color='green'))
+        ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
+
+        X, Y = np.meshgrid(x_ticks, y_ticks)
+        u = [math.sin(math.radians(n)) for n in grid_view_familiarity]
+        v = [math.cos(math.radians(n)) for n in grid_view_familiarity]
+        ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+
+        ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
+        ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+        plt.xticks(rotation=90)
+
+        plt.show()
+
+    def perfect_memory(self, curr_view):
+        view_familiarity = defaultdict(list)
+        for filename in self.route_data['Filename']:
+            route_view = self.downsample(cv2.imread(self.route_path + filename))
+            for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+                rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
+                mse = -np.square(np.subtract(route_view, rotated_view)).mean()
+                view_familiarity[i].append(mse)
+        view_familiarity = {k: np.sum(v) for k, v in view_familiarity.items()}
+        return max(view_familiarity, key=view_familiarity.get)
+
+    def downsample(self, view):
+        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
+        return cv2.resize(view, (90, 17))
 
 if __name__ == "__main__":
-    nav = Navigate("ant1_route2", 360, 4)
-    nav.database_analysis()
+    nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4)
+    nav.database_analysis(20, bounds=[[450, 350], [600, 500]])
+    #nav.database_analysis(50)
