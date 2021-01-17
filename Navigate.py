@@ -58,13 +58,17 @@ class Navigate:
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+
+        ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+
         plt.xticks(rotation=90)
 
         plt.show()
 
     def perfect_memory(self, curr_view):
         view_familiarity = defaultdict(list)
-        for filename in self.route_data['Filename']:
+        for filename in self.route_data['Filename'][:5]:
             route_view = self.downsample(cv2.imread(self.route_path + filename))
             for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
                 rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
@@ -79,5 +83,5 @@ class Navigate:
 
 if __name__ == "__main__":
     nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4)
-    nav.database_analysis(20, bounds=[[450, 350], [600, 500]])
-    #nav.database_analysis(50)
+    #nav.database_analysis(20, bounds=[[450, 350], [600, 500]])
+    nav.database_analysis(50)
