@@ -8,6 +8,7 @@ from pyprobar import probar
 from collections import defaultdict
 import datetime
 from enum import Enum
+import csv
 
 class Navigate:
 
@@ -29,26 +30,21 @@ class Navigate:
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
 
-    def database_analysis(self, model, spacing, bounds=None):
+    def database_analysis(self, model, spacing, bounds=None, save_data=False):
         if bounds is not None:
             self.bounds = bounds
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, step=spacing, dtype=int)
         y_ticks = np.arange(self.bounds[0][1], self.bounds[1][1] + 1, step=spacing, dtype=int)
 
-        grid_view_familiarity = []
-        for x in probar(x_ticks):
-            for y in y_ticks:
+        grid_view_familiarity = {}
+        for y in probar(y_ticks):
+            for x in x_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
                 if model.value == 1:
-                    grid_view_familiarity.append(self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path))))
-
+                    grid_view_familiarity[str((x, y))] = self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path)))
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
-
         ax = fig.add_subplot()
-        ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
-        ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
-        ax.grid(which='major', axis='both', linestyle=':')
 
         ax.imshow(self.topdown_view)
         ax.plot(self.route[0], self.route[1], linewidth=2, color='gold')
@@ -56,19 +52,30 @@ class Navigate:
         ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
 
         X, Y = np.meshgrid(x_ticks, y_ticks)
-        u = [math.sin(math.radians(n)) for n in grid_view_familiarity]
-        v = [math.cos(math.radians(n)) for n in grid_view_familiarity]
+        u = [math.sin(math.radians(n)) for n in grid_view_familiarity.values()]
+        v = [math.cos(math.radians(n)) for n in grid_view_familiarity.values()]
         ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
+        ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
+        ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
+        ax.grid(which='major', axis='both', linestyle=':')
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
         ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
 
-        time = datetime.datetime.now()
-        time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
-        filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
-        plt.savefig('DATABASE_ANALYSIS/' + filename + '.png')
+        if save_data:
+            time = datetime.datetime.now()
+            time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
+            filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
+            plt.savefig('DATABASE_ANALYSIS/' + filename + '.png')
+            try:
+                with open('DATABASE_ANALYSIS/' + filename + '.csv', 'w') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=grid_view_familiarity.keys())
+                    writer.writeheader()
+                    writer.writerow(grid_view_familiarity)
+            except IOError:
+                print("I/O error")
 
         plt.show()
 
@@ -93,4 +100,4 @@ class Model(Enum):
 if __name__ == "__main__":
     nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4)
     #nav.database_analysis(model=Model.PERFECTMEMORY, spacing=20, bounds=[[450, 350], [600, 500]])
-    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50)
+    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50, save_data=False)
