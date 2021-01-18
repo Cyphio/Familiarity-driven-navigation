@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import cv2
 from pyprobar import probar
-from collections import defaultdict
 import datetime
 from enum import Enum
 import csv
+
+import PerfectMemory
 
 class Navigate:
 
@@ -34,6 +35,8 @@ class Navigate:
         if bounds is not None:
             self.bounds = bounds
 
+        pm = PerfectMemory.PerfectMemory(self.route_name, self.vis_deg, self.rot_deg)
+
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, step=spacing, dtype=int)
         y_ticks = np.arange(self.bounds[0][1], self.bounds[1][1] + 1, step=spacing, dtype=int)
 
@@ -41,8 +44,9 @@ class Navigate:
         for y in probar(y_ticks):
             for x in x_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
+                curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
                 if model.value == 1:
-                    grid_view_familiarity[str((x, y))] = self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path)))
+                    grid_view_familiarity[str((x, y))] = pm.evaluate(curr_view=curr_view)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
@@ -68,9 +72,9 @@ class Navigate:
             time = datetime.datetime.now()
             time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
             filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
-            plt.savefig('DATABASE_ANALYSIS/' + filename + '.png')
+            plt.savefig('DATABASE_ANALYSIS/' + model.name + '/' + filename + '.png')
             try:
-                with open('DATABASE_ANALYSIS/' + filename + '.csv', 'w') as csvfile:
+                with open('DATABASE_ANALYSIS/' + model.name + '/' + filename + '.csv', 'w') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=grid_view_familiarity.keys())
                     writer.writeheader()
                     writer.writerow(grid_view_familiarity)
@@ -83,21 +87,10 @@ class Navigate:
         view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
         return cv2.resize(view, (90, 17))
 
-    def perfect_memory(self, curr_view):
-        view_familiarity = defaultdict(list)
-        for filename in self.route_data['Filename'][:5]:
-            route_view = self.downsample(cv2.imread(self.route_path + filename))
-            for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-                rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / 360)), axis=1)
-                mse = -np.square(np.subtract(route_view, rotated_view)).mean()
-                view_familiarity[i].append(mse)
-        view_familiarity = {k: np.sum(v) for k, v in view_familiarity.items()}
-        return max(view_familiarity, key=view_familiarity.get)
-
 class Model(Enum):
     PERFECTMEMORY = 1
 
 if __name__ == "__main__":
-    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4)
-    #nav.database_analysis(model=Model.PERFECTMEMORY, spacing=20, bounds=[[450, 350], [600, 500]])
-    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50, save_data=False)
+    nav = Navigate(route="ant1_route3", vis_deg=360, rot_deg=4)
+    # nav.database_analysis(model=Model.PERFECTMEMORY, spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
+    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50, save_data=True)
