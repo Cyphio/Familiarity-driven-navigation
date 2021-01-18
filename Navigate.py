@@ -7,6 +7,7 @@ import cv2
 from pyprobar import probar
 from collections import defaultdict
 import datetime
+from enum import Enum
 
 class Navigate:
 
@@ -28,7 +29,7 @@ class Navigate:
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
 
-    def database_analysis(self, spacing, bounds=None):
+    def database_analysis(self, model, spacing, bounds=None):
         if bounds is not None:
             self.bounds = bounds
 
@@ -39,7 +40,8 @@ class Navigate:
         for x in probar(x_ticks):
             for y in y_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
-                grid_view_familiarity.append(self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path))))
+                if model.value == 1:
+                    grid_view_familiarity.append(self.perfect_memory(self.downsample(cv2.imread(self.grid_path + curr_view_path))))
 
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
 
@@ -60,11 +62,8 @@ class Navigate:
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
-
         ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
-
-        plt.xticks(rotation=90)
 
         time = datetime.datetime.now()
         time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
@@ -88,7 +87,10 @@ class Navigate:
         view_familiarity = {k: np.sum(v) for k, v in view_familiarity.items()}
         return max(view_familiarity, key=view_familiarity.get)
 
+class Model(Enum):
+    PERFECTMEMORY = 1
+
 if __name__ == "__main__":
     nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4)
-    #nav.DATABASE_ANALYSIS(20, bounds=[[450, 350], [600, 500]])
-    nav.database_analysis(30)
+    #nav.database_analysis(model=Model.PERFECTMEMORY, spacing=20, bounds=[[450, 350], [600, 500]])
+    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50)
