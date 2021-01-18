@@ -6,6 +6,7 @@ import matplotlib.ticker as plticker
 import cv2
 from pyprobar import probar
 from collections import defaultdict
+import datetime
 
 class Navigate:
 
@@ -14,6 +15,7 @@ class Navigate:
         self.grid_path = "ant_world_image_databases/grid/"
         self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace = True)
 
+        self.route_name = route
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
         self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace = True)
 
@@ -21,7 +23,7 @@ class Navigate:
         self.start = [int(self.route_data['X [mm]'].iloc[0]/10), int(self.route_data["Y [mm]"].iloc[0]/10)]
         self.goal = [int(self.route_data['X [mm]'].iloc[-1]/10), int(self.route_data["Y [mm]"].iloc[-1]/10)]
         self.bounds = [[int((math.floor((min(self.route[0]) / 10)) * 10)), int((math.floor((min(self.route[1]) / 10)) * 10))],
-                            [int((math.ceil((max(self.route[0]) / 10)) * 10)), int((math.ceil((max(self.route[1]) / 10)) * 10))]]
+                        [int((math.ceil((max(self.route[0]) / 10)) * 10)), int((math.ceil((max(self.route[1]) / 10)) * 10))]]
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -46,7 +48,7 @@ class Navigate:
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
         ax.grid(which='major', axis='both', linestyle=':')
 
-        img = ax.imshow(self.topdown_view)
+        ax.imshow(self.topdown_view)
         ax.plot(self.route[0], self.route[1], linewidth=2, color='gold')
         ax.add_patch(plt.Circle((self.start[0], self.start[1]), 5, color='green'))
         ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
@@ -64,7 +66,16 @@ class Navigate:
 
         plt.xticks(rotation=90)
 
+        time = datetime.datetime.now()
+        time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
+        filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
+        plt.savefig('DATABASE_ANALYSIS/' + filename + '.png')
+
         plt.show()
+
+    def downsample(self, view):
+        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
+        return cv2.resize(view, (90, 17))
 
     def perfect_memory(self, curr_view):
         view_familiarity = defaultdict(list)
@@ -77,11 +88,7 @@ class Navigate:
         view_familiarity = {k: np.sum(v) for k, v in view_familiarity.items()}
         return max(view_familiarity, key=view_familiarity.get)
 
-    def downsample(self, view):
-        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
-        return cv2.resize(view, (90, 17))
-
 if __name__ == "__main__":
-    nav = Navigate(route="ant1_route8", vis_deg=360, rot_deg=4)
-    #nav.database_analysis(20, bounds=[[450, 350], [600, 500]])
-    nav.database_analysis(50)
+    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4)
+    #nav.DATABASE_ANALYSIS(20, bounds=[[450, 350], [600, 500]])
+    nav.database_analysis(30)
