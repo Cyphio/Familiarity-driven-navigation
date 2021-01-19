@@ -91,6 +91,10 @@ class Model(Enum):
     PERFECTMEMORY = 1
 
 if __name__ == "__main__":
-    nav = Navigate(route="ant1_route3", vis_deg=360, rot_deg=4)
+    nav = Navigate(route="ant1_route1", vis_deg=360, rot_deg=4)
     # nav.database_analysis(model=Model.PERFECTMEMORY, spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
-    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50, save_data=True)
+    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=30, save_data=True)
+
+    # pm = PerfectMemory.PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=4)
+    # curr_view = pm.downsample(cv2.imread(pm.route_path + "image_00000.png"))
+    # print(pm.evaluate(curr_view))
