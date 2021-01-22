@@ -7,8 +7,9 @@ import cv2
 from pyprobar import probar
 import datetime
 import csv
+from collections import defaultdict
 
-class Parent:
+class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
@@ -27,6 +28,12 @@ class Parent:
 
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
+
+        self.view_familiarity = defaultdict(list)
+
+    def downsample(self, view):
+        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
+        return cv2.resize(view, (90, 17))
 
     def database_analysis(self, spacing, bounds=None, save_data=False):
         if bounds is not None:
@@ -50,8 +57,8 @@ class Parent:
         ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
 
         X, Y = np.meshgrid(x_ticks, y_ticks)
-        u = [math.cos(math.radians(n)) for n in grid_view_familiarity.values()]
-        v = [math.sin(math.radians(n)) for n in grid_view_familiarity.values()]
+        u = [math.sin(math.radians(n)) for n in grid_view_familiarity.values()]
+        v = [math.cos(math.radians(n)) for n in grid_view_familiarity.values()]
         ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
@@ -66,9 +73,9 @@ class Parent:
             time = datetime.datetime.now()
             time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
             filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
-            plt.savefig('DATABASE_ANALYSIS/' + model.name + '/' + filename + '.png')
+            plt.savefig('DATABASE_ANALYSIS/' + self.model_name + '/' + filename + '.png')
             try:
-                with open('DATABASE_ANALYSIS/' + model.name + '/' + filename + '.csv', 'w') as csvfile:
+                with open('DATABASE_ANALYSIS/' + self.model_name + '/' + filename + '.csv', 'w') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=grid_view_familiarity.keys())
                     writer.writeheader()
                     writer.writerow(grid_view_familiarity)
@@ -76,7 +83,3 @@ class Parent:
                 print("I/O error")
 
         plt.show()
-
-    def downsample(self, view):
-        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
-        return cv2.resize(view, (90, 17))
