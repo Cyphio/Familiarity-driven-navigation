@@ -29,8 +29,6 @@ class AnalysisToolkit:
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
 
-        self.view_familiarity = defaultdict(list)
-
     def downsample(self, view):
         view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
         return cv2.resize(view, (90, 17))
@@ -82,4 +80,21 @@ class AnalysisToolkit:
             except IOError:
                 print("I/O error")
 
+        plt.show()
+
+    # Rotational Image Difference Function
+    def RIDF(self, curr_view, route_view, route_view_heading=0):
+        RIDF = defaultdict(list)
+        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+            rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
+            mse = np.sum((route_view.astype("float") - rotated_view.astype("float")) ** 2)
+            mse /= float(route_view.shape[0] * route_view.shape[1])
+            RIDF[(i + route_view_heading) % self.vis_deg].append(mse)
+        return RIDF
+
+    def RIDF_analysis(self, RIDF):
+        plt.plot(*zip(*sorted(RIDF.items())))
+        plt.xlabel("Angle")
+        plt.ylabel("MSE")
+        plt.title("RIDF")
         plt.show()
