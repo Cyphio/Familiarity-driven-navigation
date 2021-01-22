@@ -8,7 +8,7 @@ from pyprobar import probar
 import datetime
 import csv
 
-class Navigate:
+class Parent:
 
     def __init__(self, route, vis_deg, rot_deg):
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")

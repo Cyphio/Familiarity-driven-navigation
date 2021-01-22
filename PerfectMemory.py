@@ -1,11 +1,11 @@
-from Navigate import Navigate
+from Parent import Parent
 from collections import defaultdict
 import numpy as np
 import cv2
 import math
 import matplotlib.pyplot as plt
 
-class PerfectMemory(Navigate):
+class PerfectMemory(Parent):
 
     pass
 
