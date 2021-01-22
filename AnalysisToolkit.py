@@ -6,21 +6,19 @@ import matplotlib.ticker as plticker
 import cv2
 from pyprobar import probar
 import datetime
-from enum import Enum
 import csv
+from collections import defaultdict
 
-import PerfectMemory
-
-class Navigate:
+class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
         self.grid_path = "ant_world_image_databases/grid/"
-        self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace = True)
+        self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace=True)
 
         self.route_name = route
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
-        self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace = True)
+        self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace=True)
 
         self.route = [[x / 10 for x in self.route_data['X [mm]'].tolist()], [y / 10 for y in self.route_data["Y [mm]"].tolist()]]
         self.start = [int(self.route_data['X [mm]'].iloc[0]/10), int(self.route_data["Y [mm]"].iloc[0]/10)]
@@ -31,11 +29,13 @@ class Navigate:
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
 
-    def database_analysis(self, model, spacing, bounds=None, save_data=False):
+    def downsample(self, view):
+        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
+        return cv2.resize(view, (90, 17))
+
+    def database_analysis(self, spacing, bounds=None, save_data=False):
         if bounds is not None:
             self.bounds = bounds
-
-        pm = PerfectMemory.PerfectMemory(self.route_name, self.vis_deg, self.rot_deg)
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, step=spacing, dtype=int)
         y_ticks = np.arange(self.bounds[0][1], self.bounds[1][1] + 1, step=spacing, dtype=int)
@@ -45,8 +45,7 @@ class Navigate:
             for x in x_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
                 curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
-                if model.value == 1:
-                    grid_view_familiarity[str((x, y))] = pm.evaluate(curr_view=curr_view)
+                grid_view_familiarity[str((x, y))] = self.evaluate(curr_view=curr_view)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
@@ -72,9 +71,9 @@ class Navigate:
             time = datetime.datetime.now()
             time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
             filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
-            plt.savefig('DATABASE_ANALYSIS/' + model.name + '/' + filename + '.png')
+            plt.savefig('DATABASE_ANALYSIS/' + self.model_name + '/' + filename + '.png')
             try:
-                with open('DATABASE_ANALYSIS/' + model.name + '/' + filename + '.csv', 'w') as csvfile:
+                with open('DATABASE_ANALYSIS/' + self.model_name + '/' + filename + '.csv', 'w') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=grid_view_familiarity.keys())
                     writer.writeheader()
                     writer.writerow(grid_view_familiarity)
@@ -83,14 +82,19 @@ class Navigate:
 
         plt.show()
 
-    def downsample(self, view):
-        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
-        return cv2.resize(view, (90, 17))
+    # Rotational Image Difference Function
+    def RIDF(self, curr_view, route_view, route_view_heading=0):
+        RIDF = defaultdict(list)
+        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+            rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
+            mse = np.sum((route_view.astype("float") - rotated_view.astype("float")) ** 2)
+            mse /= float(route_view.shape[0] * route_view.shape[1])
+            RIDF[(i + route_view_heading) % self.vis_deg].append(mse)
+        return RIDF
 
-class Model(Enum):
-    PERFECTMEMORY = 1
-
-if __name__ == "__main__":
-    nav = Navigate(route="ant1_route3", vis_deg=360, rot_deg=4)
-    # nav.database_analysis(model=Model.PERFECTMEMORY, spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
-    nav.database_analysis(model=Model.PERFECTMEMORY, spacing=50, save_data=True)
+    def RIDF_analysis(self, RIDF):
+        plt.plot(*zip(*sorted(RIDF.items())))
+        plt.xlabel("Angle")
+        plt.ylabel("MSE")
+        plt.title("RIDF")
+        plt.show()
