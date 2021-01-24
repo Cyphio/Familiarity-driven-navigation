@@ -45,7 +45,7 @@ class AnalysisToolkit:
             for x in x_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
                 curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
-                grid_view_familiarity[str((x, y))] = self.evaluate(curr_view=curr_view)
+                grid_view_familiarity[str((x, y))] = self.get_most_familiar_bearing(curr_view=curr_view)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
@@ -82,15 +82,17 @@ class AnalysisToolkit:
 
         plt.show()
 
-    # Rotational Image Difference Function
-    def RIDF(self, curr_view, route_view, route_view_heading=0):
+    def training_data_RIDF(self, curr_view):
         RIDF = defaultdict(list)
-        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-            rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
-            mse = np.sum((route_view.astype("float") - rotated_view.astype("float")) ** 2)
-            mse /= float(route_view.shape[0] * route_view.shape[1])
-            RIDF[(i + route_view_heading) % self.vis_deg].append(mse)
+        for idx, filename in enumerate(self.route_data['Filename']):
+            route_view = self.downsample(cv2.imread(self.route_path + filename))
+            route_view_heading = int(self.rot_deg * round(float(self.route_data['Heading [degrees]'].iloc[idx])/self.rot_deg))
+            RIDF = self.RIDF(curr_view, route_view, route_view_heading)
         return RIDF
+
+    def most_familiar_bearing(self, RIDF):
+        familiarity_dict = {k: -min(v) for k, v in RIDF}
+        return max(familiarity_dict, key=familiarity_dict.get)
 
     def RIDF_analysis(self, RIDF):
         plt.plot(*zip(*sorted(RIDF.items())))
