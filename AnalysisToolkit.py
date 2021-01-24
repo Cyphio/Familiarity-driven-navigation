@@ -8,7 +8,6 @@ from pyprobar import probar
 import datetime
 import csv
 from collections import defaultdict
-from skimage.metrics import structural_similarity
 
 class AnalysisToolkit:
 
@@ -33,6 +32,28 @@ class AnalysisToolkit:
     def downsample(self, view):
         view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
         return cv2.resize(view, (90, 17))
+
+    def image_difference(self, minuend, subtrahend):
+        return (minuend.astype("float") - subtrahend.astype("float")) ** 2
+
+    def training_data_RIDF(self, curr_view):
+        RIDF = defaultdict(list)
+        for idx, filename in enumerate(self.route_data['Filename']):
+            route_view = self.downsample(cv2.imread(self.route_path + filename))
+            route_view_heading = int(self.rot_deg * round(float(self.route_data['Heading [degrees]'].iloc[idx])/self.rot_deg))
+            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, route_view_heading).items()]
+        return RIDF
+
+    def most_familiar_bearing(self, RIDF):
+        familiarity_dict = {k: -np.amin(v) for k, v in RIDF.items()}
+        return max(familiarity_dict, key=familiarity_dict.get)
+
+    def matched_training_view(self, RIDF):
+        min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
+        filename = self.route_data['Filename'].iloc[min(min_RIDF_idx.values())[1]]
+        route_view_heading = min(min_RIDF_idx, key=min_RIDF_idx.get)
+        matched_training_view = self.downsample(cv2.imread(self.route_path + filename))
+        return matched_training_view, route_view_heading, filename
 
     def database_analysis(self, spacing, bounds=None, save_data=False):
         if bounds is not None:
@@ -83,30 +104,9 @@ class AnalysisToolkit:
 
         plt.show()
 
-    def training_data_RIDF(self, curr_view):
-        RIDF = defaultdict(list)
-        for idx, filename in enumerate(self.route_data['Filename']):
-            route_view = self.downsample(cv2.imread(self.route_path + filename))
-            route_view_heading = int(self.rot_deg * round(float(self.route_data['Heading [degrees]'].iloc[idx])/self.rot_deg))
-            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, route_view_heading).items()]
-        return RIDF
-
-    def most_familiar_bearing(self, RIDF):
-        familiarity_dict = {k: -np.amin(v) for k, v in RIDF.items()}
-        return max(familiarity_dict, key=familiarity_dict.get)
-
-    def matched_training_view(self, RIDF):
-        min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
-        filename = self.route_data['Filename'].iloc[min(min_RIDF_idx.values())[1]]
-        route_view_heading = min(min_RIDF_idx, key=min_RIDF_idx.get)
-        return self.downsample(cv2.imread(self.route_path + filename)), route_view_heading
-
-    def image_difference(self, curr_view, route_view):
-        return structural_similarity(curr_view, route_view, full=True)[1]
-
-    def view_analysis(self, curr_view):
-        matched_training_view, route_view_heading = self.matched_training_view(self.training_data_RIDF(curr_view))
-        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (route_view_heading / self.vis_deg)), axis=1)
+    def view_analysis(self, curr_view, curr_heading=0):
+        matched_training_view, route_view_heading, filename = self.matched_training_view(self.training_data_RIDF(curr_view))
+        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((route_view_heading - curr_heading) / self.vis_deg)), axis=1)
         image_difference = self.image_difference(rotated_view, matched_training_view)
         RIDF = self.RIDF(curr_view, matched_training_view, route_view_heading)
 
@@ -115,15 +115,15 @@ class AnalysisToolkit:
         fig.tight_layout(pad=2.0, w_pad=0)
 
         ax[0].set_title("Current view, at rotation " + str(route_view_heading))
-        ax[0].imshow(curr_view)
-        ax[1].set_title("Best matched training view")
-        ax[1].imshow(matched_training_view)
+        ax[0].imshow(cv2.cvtColor(rotated_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title("Best matched training view: " + filename)
+        ax[1].imshow(cv2.cvtColor(matched_training_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
-        ax[2].imshow(image_difference)
+        ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         plt.show()
 
         plt.plot(*zip(*sorted(RIDF.items())))
+        plt.title("RIDF")
         plt.xlabel("Angle")
         plt.ylabel("MSE")
-        plt.title("RIDF")
         plt.show()
