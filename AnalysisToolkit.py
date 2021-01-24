@@ -36,7 +36,7 @@ class AnalysisToolkit:
     def image_difference(self, minuend, subtrahend):
         return (minuend.astype("float") - subtrahend.astype("float")) ** 2
 
-    def training_data_RIDF(self, curr_view):
+    def route_view_RIDF(self, curr_view):
         RIDF = defaultdict(list)
         for idx, filename in enumerate(self.route_data['Filename']):
             route_view = self.downsample(cv2.imread(self.route_path + filename))
@@ -48,12 +48,12 @@ class AnalysisToolkit:
         familiarity_dict = {k: -np.amin(v) for k, v in RIDF.items()}
         return max(familiarity_dict, key=familiarity_dict.get)
 
-    def matched_training_view(self, RIDF):
+    def matched_route_view(self, RIDF):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
         filename = self.route_data['Filename'].iloc[min(min_RIDF_idx.values())[1]]
         route_view_heading = min(min_RIDF_idx, key=min_RIDF_idx.get)
-        matched_training_view = self.downsample(cv2.imread(self.route_path + filename))
-        return matched_training_view, route_view_heading, filename
+        matched_route_view = self.downsample(cv2.imread(self.route_path + filename))
+        return matched_route_view, route_view_heading, filename
 
     def database_analysis(self, spacing, bounds=None, save_data=False):
         if bounds is not None:
@@ -105,10 +105,10 @@ class AnalysisToolkit:
         plt.show()
 
     def view_analysis(self, curr_view, curr_heading=0):
-        matched_training_view, route_view_heading, filename = self.matched_training_view(self.training_data_RIDF(curr_view))
+        matched_route_view, route_view_heading, filename = self.matched_route_view(self.route_view_RIDF(curr_view))
         rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((route_view_heading - curr_heading) / self.vis_deg)), axis=1)
-        image_difference = self.image_difference(rotated_view, matched_training_view)
-        RIDF = self.RIDF(curr_view, matched_training_view, route_view_heading)
+        image_difference = self.image_difference(rotated_view, matched_route_view)
+        RIDF = self.RIDF(curr_view, matched_route_view, route_view_heading)
 
         plt.figure()
         fig, ax = plt.subplots(3, 1)
@@ -116,8 +116,8 @@ class AnalysisToolkit:
 
         ax[0].set_title("Current view, at rotation " + str(route_view_heading))
         ax[0].imshow(cv2.cvtColor(rotated_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title("Best matched training view: " + filename)
-        ax[1].imshow(cv2.cvtColor(matched_training_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title("Best matched route view: " + filename)
+        ax[1].imshow(cv2.cvtColor(matched_route_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         plt.show()
