@@ -8,6 +8,7 @@ from pyprobar import probar
 import datetime
 import csv
 from collections import defaultdict
+from skimage.metrics import structural_similarity
 
 class AnalysisToolkit:
 
@@ -97,9 +98,30 @@ class AnalysisToolkit:
     def matched_training_view(self, RIDF):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
         filename = self.route_data['Filename'].iloc[min(min_RIDF_idx.values())[1]]
-        return cv2.imread(self.route_path + filename)
+        route_view_heading = min(min_RIDF_idx, key=min_RIDF_idx.get)
+        return self.downsample(cv2.imread(self.route_path + filename)), route_view_heading
 
-    def RIDF_analysis(self, RIDF):
+    def image_difference(self, curr_view, route_view):
+        return structural_similarity(curr_view, route_view, full=True)[1]
+
+    def view_analysis(self, curr_view):
+        matched_training_view, route_view_heading = self.matched_training_view(self.training_data_RIDF(curr_view))
+        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (route_view_heading / self.vis_deg)), axis=1)
+        image_difference = self.image_difference(rotated_view, matched_training_view)
+        RIDF = self.RIDF(curr_view, matched_training_view, route_view_heading)
+
+        plt.figure()
+        fig, ax = plt.subplots(3, 1)
+        fig.tight_layout(pad=2.0, w_pad=0)
+
+        ax[0].set_title("Current view, at rotation " + str(route_view_heading))
+        ax[0].imshow(curr_view)
+        ax[1].set_title("Best matched training view")
+        ax[1].imshow(matched_training_view)
+        ax[2].set_title("Image difference")
+        ax[2].imshow(image_difference)
+        plt.show()
+
         plt.plot(*zip(*sorted(RIDF.items())))
         plt.xlabel("Angle")
         plt.ylabel("MSE")

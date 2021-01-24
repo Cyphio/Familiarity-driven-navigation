@@ -11,7 +11,7 @@ class PerfectMemory(AnalysisToolkit):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
         self.model_name = 'PERFECTMEMORY'
 
-    # Rotational Image Difference Function
+    # Perfect Memory Rotational Image Difference Function
     def RIDF(self, curr_view, route_view, route_view_heading=0):
         RIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
@@ -21,7 +21,6 @@ class PerfectMemory(AnalysisToolkit):
             RIDF[(i + route_view_heading) % self.vis_deg] = mse
         return RIDF
 
-
 if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=4)
 
@@ -29,11 +28,8 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
     # pm.database_analysis(spacing=100, save_data=False)
 
-
-    # RIDF
+    # View analysis
     curr_view = pm.downsample(cv2.imread(pm.grid_path + "image_+000000_+000000_+001800.png"))
     route_view = pm.downsample(cv2.imread(pm.route_path + "image_00082.png"))
-    # RIDF = pm.RIDF(curr_view, route_view)
-    RIDF = pm.training_data_RIDF(curr_view)
-    print(pm.matched_training_view(RIDF))
+    pm.view_analysis(curr_view)
 
