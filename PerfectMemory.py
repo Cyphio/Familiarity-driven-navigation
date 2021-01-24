@@ -13,12 +13,12 @@ class PerfectMemory(AnalysisToolkit):
 
     # Rotational Image Difference Function
     def RIDF(self, curr_view, route_view, route_view_heading=0):
-        RIDF = defaultdict(list)
+        RIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
             mse = np.sum((route_view.astype("float") - rotated_view.astype("float")) ** 2)
             mse /= float(route_view.shape[0] * route_view.shape[1])
-            RIDF[(i + route_view_heading) % self.vis_deg].append(mse)
+            RIDF[(i + route_view_heading) % self.vis_deg] = mse
         return RIDF
 
 
@@ -27,12 +27,13 @@ if __name__ == "__main__":
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
-    pm.database_analysis(spacing=100, save_data=False)
+    # pm.database_analysis(spacing=100, save_data=False)
 
 
     # RIDF
-    # curr_view = pm.downsample(cv2.imread(pm.route_path + "image_00001.png"))
-    # route_view = pm.downsample(cv2.imread(pm.route_path + "image_00082.png"))
+    curr_view = pm.downsample(cv2.imread(pm.grid_path + "image_+000000_+000000_+001800.png"))
+    route_view = pm.downsample(cv2.imread(pm.route_path + "image_00082.png"))
     # RIDF = pm.RIDF(curr_view, route_view)
-    # pm.RIDF_analysis(RIDF)
+    RIDF = pm.training_data_RIDF(curr_view)
+    print(pm.matched_training_view(RIDF))
 
