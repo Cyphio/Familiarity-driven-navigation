@@ -55,6 +55,22 @@ class AnalysisToolkit:
         matched_route_view = self.downsample(cv2.imread(self.route_path + filename))
         return matched_route_view, route_view_heading, filename
 
+    def save_plot(self, plot, path="", filename=""):
+        time = datetime.datetime.now()
+        time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
+        plot.savefig(path + self.model_name + '/' + str(time) + '_' + filename + '.png')
+
+    def save_dict_as_CSV(self, data, path="", filename=""):
+        time = datetime.datetime.now()
+        time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
+        try:
+            with open(path + self.model_name + '/' + str(time) + '_' + filename + '.csv', 'w') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=data.keys())
+                writer.writeheader()
+                writer.writerow(data)
+        except IOError:
+            print("I/O error")
+
     def database_analysis(self, spacing, bounds=None, save_data=False):
         if bounds is not None:
             self.bounds = bounds
@@ -67,7 +83,8 @@ class AnalysisToolkit:
             for x in x_ticks:
                 curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
                 curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
-                grid_view_familiarity[str((x, y))] = self.most_familiar_bearing(curr_view=curr_view)
+                RIDF = self.route_view_RIDF(curr_view)
+                grid_view_familiarity[str((x, y))] = self.most_familiar_bearing(RIDF)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
@@ -77,8 +94,8 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
 
         X, Y = np.meshgrid(x_ticks, y_ticks)
-        u = [math.sin(math.radians(n)) for n in grid_view_familiarity.values()]
-        v = [math.cos(math.radians(n)) for n in grid_view_familiarity.values()]
+        u = [math.cos(math.radians(n)) for n in grid_view_familiarity.values()]
+        v = [math.sin(math.radians(n)) for n in grid_view_familiarity.values()]
         ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
@@ -90,21 +107,12 @@ class AnalysisToolkit:
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
 
         if save_data:
-            time = datetime.datetime.now()
-            time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
-            filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + str(time)
-            plt.savefig('DATABASE_ANALYSIS/' + self.model_name + '/' + filename + '.png')
-            try:
-                with open('DATABASE_ANALYSIS/' + self.model_name + '/' + filename + '.csv', 'w') as csvfile:
-                    writer = csv.DictWriter(csvfile, fieldnames=grid_view_familiarity.keys())
-                    writer.writeheader()
-                    writer.writerow(grid_view_familiarity)
-            except IOError:
-                print("I/O error")
-
+            filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing)
+            self.save_plot(plt, "DATABASE_ANALYSIS/", filename)
+            self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    def view_analysis(self, curr_view, curr_heading=0):
+    def view_analysis(self, curr_view, curr_heading=0, save_data=False):
         matched_route_view, route_view_heading, filename = self.matched_route_view(self.route_view_RIDF(curr_view))
         rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((route_view_heading - curr_heading) / self.vis_deg)), axis=1)
         image_difference = self.image_difference(rotated_view, matched_route_view)
@@ -120,10 +128,16 @@ class AnalysisToolkit:
         ax[1].imshow(cv2.cvtColor(matched_route_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        if save_data:
+            filename = "IMG_DIFF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
         plt.plot(*zip(*sorted(RIDF.items())))
         plt.title("RIDF")
         plt.xlabel("Angle")
         plt.ylabel("MSE")
+        if save_data:
+            filename = "RIDF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
