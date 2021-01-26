@@ -81,10 +81,12 @@ class AnalysisToolkit:
         grid_view_familiarity = {}
         for y in probar(y_ticks):
             for x in x_ticks:
-                curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
-                curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
-                RIDF = self.route_view_RIDF(curr_view)
-                grid_view_familiarity[str((x, y))] = self.most_familiar_bearing(RIDF)
+                # curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
+                # curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
+                # RIDF = self.route_view_RIDF(curr_view)
+                # grid_view_familiarity[str((x, y))] = self.most_familiar_bearing(RIDF)
+                grid_view_familiarity[str((x, y))] = 0
+        print(grid_view_familiarity)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
@@ -94,8 +96,8 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
 
         X, Y = np.meshgrid(x_ticks, y_ticks)
-        u = [math.cos(math.radians(n)) for n in grid_view_familiarity.values()]
-        v = [math.sin(math.radians(n)) for n in grid_view_familiarity.values()]
+        u = [np.sin(np.radians(n)) for n in grid_view_familiarity.values()]
+        v = [np.cos(np.radians(n)) for n in grid_view_familiarity.values()]
         ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
@@ -112,9 +114,39 @@ class AnalysisToolkit:
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    def view_analysis(self, curr_view, curr_heading=0, save_data=False):
+    # def route_analysis(self, size):
+    #     route_view_familiarity = {}
+    #     for idx, filename in enumerate(self.route_data['Filename'].head(size)):
+    #         print(filename)
+    #         curr_view_X = self.route_data['X [mm]'].iloc[idx]/10
+    #         curr_view_Y = self.route_data['Y [mm]'].iloc[idx]/10
+    #         curr_view = self.downsample(cv2.imread(self.route_path + filename))
+    #         RIDF = self.route_view_RIDF(curr_view)
+    #         route_view_familiarity[str((curr_view_X, curr_view_Y))] = self.most_familiar_bearing(RIDF)
+    #     print(route_view_familiarity)
+    #     fig = plt.figure()
+    #     ax = fig.add_subplot()
+    #
+    #     ax.imshow(self.topdown_view)
+    #     ax.plot(self.route[0], self.route[1], linewidth=2, color='gold')
+    #     ax.add_patch(plt.Circle((self.start[0], self.start[1]), 5, color='green'))
+    #     ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
+    #
+    #     X = (self.route_data['X [mm]'].head(size)/10).tolist()
+    #     Y = (self.route_data['Y [mm]'].head(size)/10).tolist()
+    #     u = [math.cos(math.radians(n)) for n in route_view_familiarity.values()]
+    #     v = [math.sin(math.radians(n)) for n in route_view_familiarity.values()]
+    #     ax.quiver(X, Y, v, u, color='w', scale_units='xy')
+    #
+    #     # ax.grid(which='major', axis='both', linestyle=':')
+    #     # ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
+    #     # ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+    #
+    #     plt.show()
+
+    def view_analysis(self, curr_view, save_data=False):
         matched_route_view, route_view_heading, filename = self.matched_route_view(self.route_view_RIDF(curr_view))
-        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((route_view_heading - curr_heading) / self.vis_deg)), axis=1)
+        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (route_view_heading / self.vis_deg)), axis=1)
         image_difference = self.image_difference(rotated_view, matched_route_view)
         RIDF = self.RIDF(curr_view, matched_route_view, route_view_heading)
 
