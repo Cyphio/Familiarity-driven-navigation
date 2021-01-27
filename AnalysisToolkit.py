@@ -84,11 +84,10 @@ class AnalysisToolkit:
         grid_view_familiarity = {}
         for y in probar(y_ticks):
             for x in x_ticks:
-                # curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
-                # curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
-                # RIDF = self.route_view_RIDF(curr_view)
-                # grid_view_familiarity[str((x, y))] = self.most_familiar_bearing(RIDF)
-                grid_view_familiarity[str((x, y))] = 0
+                curr_view_path = self.grid_data['Filename'].values[(self.grid_data['Grid X'] == x/10) & (self.grid_data['Grid Y'] == y/10)][0]
+                curr_view = self.downsample(cv2.imread(self.grid_path + curr_view_path))
+                RIDF = self.route_view_RIDF(curr_view)
+                grid_view_familiarity[str((x, y))] = self.most_familiar_bearing(RIDF)
         print(grid_view_familiarity)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
@@ -99,8 +98,8 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
 
         X, Y = np.meshgrid(x_ticks, y_ticks)
-        u = [np.sin(np.radians(n)) for n in grid_view_familiarity.values()]
-        v = [np.cos(np.radians(n)) for n in grid_view_familiarity.values()]
+        u = [np.cos(np.deg2rad(n)) for n in grid_view_familiarity.values()]
+        v = [np.sin(np.deg2rad(n)) for n in grid_view_familiarity.values()]
         ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
@@ -118,13 +117,13 @@ class AnalysisToolkit:
         plt.show()
 
     def route_analysis(self, step):
-        # route_view_familiarity = {}
-        # for idx, filename in self.route_filenames[::step]:
-        #     print(filename)
-        #     curr_view = self.downsample(cv2.imread(self.route_path + filename))
-        #     RIDF = self.route_view_RIDF(curr_view)
-        #     route_view_familiarity[str((self.route_X[idx]/10, self.route_Y[idx]/10))] = self.most_familiar_bearing(RIDF)
-        # print(route_view_familiarity)
+        route_view_familiarity = {}
+        for idx, filename in enumerate(self.route_filenames[::step]):
+            print(filename)
+            curr_view = self.downsample(cv2.imread(self.route_path + filename))
+            RIDF = self.route_view_RIDF(curr_view)
+            route_view_familiarity[str((self.route_X[idx]/10, self.route_Y[idx]/10))] = self.most_familiar_bearing(RIDF)
+        print(route_view_familiarity)
         fig = plt.figure()
         ax = fig.add_subplot()
         ax.axis('equal')
@@ -136,16 +135,10 @@ class AnalysisToolkit:
 
         X = [x/10 for x in self.route_X[::step]]
         Y = [y/10 for y in self.route_Y[::step]]
-        # u = [np.sin(np.deg2rad(n)) for n in route_view_familiarity.values()]
-        # v = [np.cos(np.deg2rad(n)) for n in route_view_familiarity.values()]
-        u = [np.cos(np.deg2rad(n)) for n in self.route_headings[::step]]
-        v = [np.sin(np.deg2rad(n)) for n in self.route_headings[::step]]
+        u = [np.cos(np.deg2rad(n)) for n in route_view_familiarity.values()]
+        v = [np.sin(np.deg2rad(n)) for n in route_view_familiarity.values()]
 
         ax.quiver(X, Y, v, u, zorder=3)
-
-        # ax.grid(which='major', axis='both', linestyle=':')
-        # ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
-        # ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
 
         plt.show()
 

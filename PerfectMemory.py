@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=30, save_data=False)
 
     # Route view analysis
-    pm.route_analysis(step=100)
+    # pm.route_analysis(step=100)
 
     # Grid view analysis
     # idx = 75
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     # pm.view_analysis(curr_view=grid_view, save_data=False)
 
     # On-route view analysis
-    idx = 0
+    # idx = 0
     # filename = pm.route_filenames[idx]
     # route_view = pm.downsample(cv2.imread(pm.route_path + filename))
     # route_view_heading = pm.route_headings[idx]
