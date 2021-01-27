@@ -12,22 +12,26 @@ from collections import defaultdict
 class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
+        self.route_name = route
+        self.vis_deg = vis_deg
+        self.rot_deg = rot_deg
+
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
         self.grid_path = "ant_world_image_databases/grid/"
         self.grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace=True)
 
-        self.route_name = route
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
-        self.route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace=True)
+        route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace=True)
+        self.route_filenames = np.array(route_data['Filename'])
+        self.route_X = np.array(route_data['X [mm]'])
+        self.route_Y = np.array(route_data["Y [mm]"])
+        self.route_headings = np.array([int(rot_deg * round(float(heading))/rot_deg) for heading in route_data['Heading [degrees]']])
 
-        self.route = [[x / 10 for x in self.route_data['X [mm]'].tolist()], [y / 10 for y in self.route_data["Y [mm]"].tolist()]]
-        self.start = [int(self.route_data['X [mm]'].iloc[0]/10), int(self.route_data["Y [mm]"].iloc[0]/10)]
-        self.goal = [int(self.route_data['X [mm]'].iloc[-1]/10), int(self.route_data["Y [mm]"].iloc[-1]/10)]
+        self.route = [[x / 10 for x in self.route_X], [y / 10 for y in self.route_Y]]
+        self.start = [int(self.route_X[0]/10), int(self.route_Y[0]/10)]
+        self.goal = [int(self.route_X[-1]/10), int(self.route_Y[-1]/10)]
         self.bounds = [[int((math.floor((min(self.route[0]) / 10)) * 10)), int((math.floor((min(self.route[1]) / 10)) * 10))],
                         [int((math.ceil((max(self.route[0]) / 10)) * 10)), int((math.ceil((max(self.route[1]) / 10)) * 10))]]
-
-        self.vis_deg = vis_deg
-        self.rot_deg = rot_deg
 
     def downsample(self, view):
         view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
@@ -38,10 +42,9 @@ class AnalysisToolkit:
 
     def route_view_RIDF(self, curr_view):
         RIDF = defaultdict(list)
-        for idx, filename in enumerate(self.route_data['Filename']):
+        for idx, filename in enumerate(self.route_filenames):
             route_view = self.downsample(cv2.imread(self.route_path + filename))
-            route_view_heading = int(self.rot_deg * round(float(self.route_data['Heading [degrees]'].iloc[idx])/self.rot_deg))
-            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, route_view_heading).items()]
+            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, self.route_headings[idx]).items()]
         return RIDF
 
     def most_familiar_bearing(self, RIDF):
@@ -50,7 +53,7 @@ class AnalysisToolkit:
 
     def matched_route_view(self, RIDF):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
-        filename = self.route_data['Filename'].iloc[min(min_RIDF_idx.values())[1]]
+        filename = self.route_filenames[min(min_RIDF_idx.values())[1]]
         route_view_heading = min(min_RIDF_idx, key=min_RIDF_idx.get)
         matched_route_view = self.downsample(cv2.imread(self.route_path + filename))
         return matched_route_view, route_view_heading, filename
@@ -114,39 +117,41 @@ class AnalysisToolkit:
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    # def route_analysis(self, size):
-    #     route_view_familiarity = {}
-    #     for idx, filename in enumerate(self.route_data['Filename'].head(size)):
-    #         print(filename)
-    #         curr_view_X = self.route_data['X [mm]'].iloc[idx]/10
-    #         curr_view_Y = self.route_data['Y [mm]'].iloc[idx]/10
-    #         curr_view = self.downsample(cv2.imread(self.route_path + filename))
-    #         RIDF = self.route_view_RIDF(curr_view)
-    #         route_view_familiarity[str((curr_view_X, curr_view_Y))] = self.most_familiar_bearing(RIDF)
-    #     print(route_view_familiarity)
-    #     fig = plt.figure()
-    #     ax = fig.add_subplot()
-    #
-    #     ax.imshow(self.topdown_view)
-    #     ax.plot(self.route[0], self.route[1], linewidth=2, color='gold')
-    #     ax.add_patch(plt.Circle((self.start[0], self.start[1]), 5, color='green'))
-    #     ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
-    #
-    #     X = (self.route_data['X [mm]'].head(size)/10).tolist()
-    #     Y = (self.route_data['Y [mm]'].head(size)/10).tolist()
-    #     u = [math.cos(math.radians(n)) for n in route_view_familiarity.values()]
-    #     v = [math.sin(math.radians(n)) for n in route_view_familiarity.values()]
-    #     ax.quiver(X, Y, v, u, color='w', scale_units='xy')
-    #
-    #     # ax.grid(which='major', axis='both', linestyle=':')
-    #     # ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
-    #     # ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
-    #
-    #     plt.show()
+    def route_analysis(self, step):
+        # route_view_familiarity = {}
+        # for idx, filename in self.route_filenames[::step]:
+        #     print(filename)
+        #     curr_view = self.downsample(cv2.imread(self.route_path + filename))
+        #     RIDF = self.route_view_RIDF(curr_view)
+        #     route_view_familiarity[str((self.route_X[idx]/10, self.route_Y[idx]/10))] = self.most_familiar_bearing(RIDF)
+        # print(route_view_familiarity)
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.axis('equal')
 
-    def view_analysis(self, curr_view, save_data=False):
+        # ax.imshow(self.topdown_view)
+        ax.plot(self.route[0], self.route[1], linewidth=2, color='gold')
+        ax.add_patch(plt.Circle((self.start[0], self.start[1]), 5, color='green'))
+        ax.add_patch(plt.Circle((self.goal[0], self.goal[1]), 5, color='red'))
+
+        X = [x/10 for x in self.route_X[::step]]
+        Y = [y/10 for y in self.route_Y[::step]]
+        # u = [np.sin(np.deg2rad(n)) for n in route_view_familiarity.values()]
+        # v = [np.cos(np.deg2rad(n)) for n in route_view_familiarity.values()]
+        u = [np.cos(np.deg2rad(n)) for n in self.route_headings[::step]]
+        v = [np.sin(np.deg2rad(n)) for n in self.route_headings[::step]]
+
+        ax.quiver(X, Y, v, u, zorder=3)
+
+        # ax.grid(which='major', axis='both', linestyle=':')
+        # ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
+        # ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+
+        plt.show()
+
+    def view_analysis(self, curr_view, curr_heading=0, save_data=False):
         matched_route_view, route_view_heading, filename = self.matched_route_view(self.route_view_RIDF(curr_view))
-        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (route_view_heading / self.vis_deg)), axis=1)
+        rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((route_view_heading-curr_heading) / self.vis_deg)), axis=1)
         image_difference = self.image_difference(rotated_view, matched_route_view)
         RIDF = self.RIDF(curr_view, matched_route_view, route_view_heading)
 
