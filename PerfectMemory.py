@@ -22,21 +22,25 @@ class PerfectMemory(AnalysisToolkit):
         return RIDF
 
 if __name__ == "__main__":
-    pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=4)
+    pm = PerfectMemory(route="ant1_route3", vis_deg=360, rot_deg=4)
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
-    # pm.database_analysis(spacing=100, save_data=False)
+    # pm.database_analysis(spacing=30, save_data=False)
+
+    # Route view analysis
+    # pm.route_analysis(step=100)
 
     # Grid view analysis
-    idx = 75
-    filename = pm.grid_data['Filename'].iloc[idx]
-    curr_view = pm.downsample(cv2.imread(pm.grid_path + filename))
-    pm.view_analysis(curr_view=curr_view)
+    # idx = 75
+    # filename = pm.grid_data['Filename'].iloc[idx]
+    # filename = "image_+005300_+005200_+001800.png"
+    # grid_view = pm.downsample(cv2.imread(pm.grid_path + filename))
+    # pm.view_analysis(curr_view=grid_view, save_data=False)
 
     # On-route view analysis
-    # idx = 87
-    # filename = pm.route_data['Filename'].iloc[idx]
+    # idx = 0
+    # filename = pm.route_filenames[idx]
     # route_view = pm.downsample(cv2.imread(pm.route_path + filename))
-    # route_view_heading = int(pm.rot_deg * round(float(pm.route_data['Heading [degrees]'].iloc[idx]) / pm.rot_deg))
-    # pm.view_analysis(curr_view=route_view, curr_heading=route_view_heading)
+    # route_view_heading = pm.route_headings[idx]
+    # pm.view_analysis(curr_view=route_view, curr_heading=route_view_heading, save_data=False)
