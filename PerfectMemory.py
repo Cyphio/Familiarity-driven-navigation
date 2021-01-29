@@ -12,13 +12,14 @@ class PerfectMemory(AnalysisToolkit):
         self.model_name = 'PERFECTMEMORY'
 
     # Perfect Memory Rotational Image Difference Function
-    def RIDF(self, curr_view, route_view, curr_view_heading=0):
+    def RIDF(self, curr_view, route_view, curr_view_heading=0, route_view_heading=0):
         RIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             rotated_curr_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
-            mse = np.sum(self.image_difference(route_view, rotated_curr_view))
+            # rotated_route_view = np.roll(route_view, int(route_view.shape[1] * -(route_view_heading / self.vis_deg)), axis=1)
+            mse = np.sum(self.image_difference(rotated_curr_view, route_view))
             mse /= float(route_view.shape[0] * route_view.shape[1])
-            RIDF[(i+curr_view_heading) % self.vis_deg] = mse
+            RIDF[(i+curr_view_heading)%self.vis_deg] = mse
         return RIDF
 
 if __name__ == "__main__":
@@ -26,10 +27,10 @@ if __name__ == "__main__":
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
-    pm.database_analysis(spacing=30, save_data=False)
+    # pm.database_analysis(spacing=30, save_data=False)
 
     # Route view analysis
-    # pm.route_analysis(step=100)
+    pm.route_analysis(step=100)
 
     # Grid view analysis
     # filename = pm.grid_filenames.get((620, 730))
@@ -37,7 +38,7 @@ if __name__ == "__main__":
     # pm.view_analysis(curr_view=grid_view, save_data=False)
 
     # On-route view analysis
-    # idx = 300
+    # idx = 10
     # filename = pm.route_filenames[idx]
     # route_view = pm.downsample(cv2.imread(pm.route_path + filename))
     # route_view_heading = pm.route_headings[idx]

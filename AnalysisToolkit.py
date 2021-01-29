@@ -45,20 +45,15 @@ class AnalysisToolkit:
         RIDF = defaultdict(list)
         for idx, filename in enumerate(self.route_filenames):
             route_view = self.downsample(cv2.imread(self.route_path + filename))
-            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, curr_view_heading).items()]
+            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, curr_view_heading, self.route_headings[idx]).items()]
         return RIDF
 
-    def most_familiar_heading(self, RIDF):
-        familiarity_dict = {k: -np.amin(v) for k, v in RIDF.items()}
-        return max(familiarity_dict, key=familiarity_dict.get)
-
     def matched_route_view(self, RIDF):
+        familiarity_dict = {k: -np.amin(v) for k, v in RIDF.items()}
+        familiar_heading = max(familiarity_dict, key=familiarity_dict.get)
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
-        filename = self.route_filenames[min(min_RIDF_idx.values())[1]]
-        # route_view_heading = min(min_RIDF_idx, key=min_RIDF_idx.get)
-        matched_route_view = self.downsample(cv2.imread(self.route_path + filename))
-        familiar_heading = self.most_familiar_heading(RIDF)
-        return filename, matched_route_view, familiar_heading
+        matched_view_idx = min(min_RIDF_idx.values())[1]
+        return familiar_heading, matched_view_idx
 
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
@@ -82,35 +77,34 @@ class AnalysisToolkit:
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, step=spacing, dtype=int)
         y_ticks = np.arange(self.bounds[0][1], self.bounds[1][1] + 1, step=spacing, dtype=int)
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
+        quiver_map = []
 
         grid_view_familiarity = {}
         for y in probar(y_ticks):
             for x in x_ticks:
-                # filename = self.grid_filenames.get((x, y))
-                # curr_view = self.downsample(cv2.imread(self.grid_path + filename))
-                # RIDF = self.route_view_RIDF(curr_view)
-                # grid_view_familiarity[str((x, y))] = self.most_familiar_heading(RIDF)
-                grid_view_familiarity[str((x, y))] = 0
+                filename = self.grid_filenames.get((x, y))
+                curr_view = self.downsample(cv2.imread(self.grid_path + filename))
+                RIDF = self.route_view_RIDF(curr_view)
+                familiar_heading, matched_view_idx = self.matched_route_view(RIDF)
+                grid_view_familiarity[str((x, y))] = familiar_heading
+                quiver_map.append(line_map[matched_view_idx])
         print(grid_view_familiarity)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
-        # ax.axis('equal')
 
-        cm = plt.get_cmap('YlOrRd')
-        ax.set_prop_cycle('color', [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)])
-        # ax.set_prop_cycle(['red', 'green', 'blue'])
-        for i in range(len(self.route_X) - 1):
-            ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4)
-        # ax.plot(self.route_X, self.route_Y, linewidth=2, color='gold')
+        ax.set_prop_cycle('color', line_map)
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
         X, Y = np.meshgrid(x_ticks, y_ticks)
         u = [np.sin(np.deg2rad(n)) for n in grid_view_familiarity.values()]
         v = [np.cos(np.deg2rad(n)) for n in grid_view_familiarity.values()]
-        ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+        ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
@@ -127,20 +121,26 @@ class AnalysisToolkit:
         plt.show()
 
     def route_analysis(self, step):
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
+        quiver_map = []
+
         route_view_familiarity = {}
         for idx, filename in enumerate(self.route_filenames[::step]):
-            print(idx)
+            print(f"Current view under analysis: {filename}")
             curr_view = self.downsample(cv2.imread(self.route_path + filename))
             RIDF = self.route_view_RIDF(curr_view, self.route_headings[idx*step])
-            route_view_familiarity[str((self.route_X[idx*step], self.route_Y[idx*step]))] = self.most_familiar_heading(RIDF)
-        print(route_view_familiarity)
+            familiar_heading, matched_view_idx = self.matched_route_view(RIDF)
+            route_view_familiarity[str((self.route_X[idx*step], self.route_Y[idx*step]))] = familiar_heading
+            quiver_map.append(line_map[matched_view_idx])
         fig = plt.figure()
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
         ax.axis('equal')
 
-        ax.plot(self.route_X, self.route_Y, linewidth=2, color='gold')
+        ax.set_prop_cycle('color', line_map)
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
@@ -149,7 +149,7 @@ class AnalysisToolkit:
         u = [np.sin(np.deg2rad(n)) for n in route_view_familiarity.values()]
         v = [np.cos(np.deg2rad(n)) for n in route_view_familiarity.values()]
 
-        ax.quiver(X, Y, u, v, color='w', scale_units='xy')
+        ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy')
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
@@ -158,7 +158,9 @@ class AnalysisToolkit:
 
     def view_analysis(self, curr_view, curr_view_heading=0, save_data=False):
         RIDF = self.route_view_RIDF(curr_view, curr_view_heading)
-        filename, matched_route_view, familiar_heading = self.matched_route_view(RIDF)
+        familiar_heading, matched_view_idx = self.matched_route_view(RIDF)
+        matched_route_filename = self.route_filenames[matched_view_idx]
+        matched_route_view = self.downsample(cv2.imread(self.route_path + matched_route_filename))
         rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((familiar_heading - curr_view_heading) / self.vis_deg)), axis=1)
         image_difference = self.image_difference(rotated_view, matched_route_view)
         RIDF = self.RIDF(rotated_view, matched_route_view, familiar_heading)
@@ -169,7 +171,7 @@ class AnalysisToolkit:
 
         ax[0].set_title("Current view, at rotation " + str(familiar_heading))
         ax[0].imshow(cv2.cvtColor(rotated_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title("Best matched route view: " + filename)
+        ax[1].set_title("Best matched route view: " + matched_route_filename)
         ax[1].imshow(cv2.cvtColor(matched_route_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
