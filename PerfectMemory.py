@@ -12,13 +12,13 @@ class PerfectMemory(AnalysisToolkit):
         self.model_name = 'PERFECTMEMORY'
 
     # Perfect Memory Rotational Image Difference Function
-    def RIDF(self, curr_view, route_view, route_view_heading=0):
+    def RIDF(self, curr_view, route_view, curr_view_heading=0):
         RIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-            rotated_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
-            mse = np.sum(self.image_difference(route_view, rotated_view))
+            rotated_curr_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
+            mse = np.sum(self.image_difference(route_view, rotated_curr_view))
             mse /= float(route_view.shape[0] * route_view.shape[1])
-            RIDF[(i + route_view_heading) % self.vis_deg] = mse
+            RIDF[(i+curr_view_heading) % self.vis_deg] = mse
         return RIDF
 
 if __name__ == "__main__":
@@ -26,21 +26,19 @@ if __name__ == "__main__":
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[600, 800], [650, 850]], save_data=False)
-    # pm.database_analysis(spacing=30, save_data=False)
+    pm.database_analysis(spacing=30, save_data=False)
 
     # Route view analysis
     # pm.route_analysis(step=100)
 
     # Grid view analysis
-    # idx = 75
-    # filename = pm.grid_data['Filename'].iloc[idx]
-    # filename = "image_+005300_+005200_+001800.png"
+    # filename = pm.grid_filenames.get((620, 730))
     # grid_view = pm.downsample(cv2.imread(pm.grid_path + filename))
     # pm.view_analysis(curr_view=grid_view, save_data=False)
 
     # On-route view analysis
-    # idx = 0
+    # idx = 300
     # filename = pm.route_filenames[idx]
     # route_view = pm.downsample(cv2.imread(pm.route_path + filename))
     # route_view_heading = pm.route_headings[idx]
-    # pm.view_analysis(curr_view=route_view, curr_heading=route_view_heading, save_data=False)
+    # pm.view_analysis(curr_view=route_view, curr_view_heading=route_view_heading, save_data=False)
