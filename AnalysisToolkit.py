@@ -42,16 +42,17 @@ class AnalysisToolkit:
         return (minuend.astype("float") - subtrahend.astype("float")) ** 2
 
     def route_view_RIDF(self, curr_view, curr_view_heading=0):
-        RIDF = defaultdict(list)
+        route_view_RIDF = defaultdict(list)
         for idx, filename in enumerate(self.route_filenames):
             route_view = self.downsample(cv2.imread(self.route_path + filename))
-            [RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, curr_view_heading, self.route_headings[idx]).items()]
-        return RIDF
+            [route_view_RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, curr_view_heading, self.route_headings[idx]).items()]
+        return route_view_RIDF
 
-    def matched_route_view(self, RIDF):
-        familiarity_dict = {k: -np.amin(v) for k, v in RIDF.items()}
+    def get_familiarity_data(self, curr_view, curr_view_heading=0):
+        route_view_RIDF = self.route_view_RIDF(curr_view, curr_view_heading)
+        familiarity_dict = {k: -np.amin(v) for k, v in route_view_RIDF.items()}
         familiar_heading = max(familiarity_dict, key=familiarity_dict.get)
-        min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in RIDF.items()}
+        min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in route_view_RIDF.items()}
         matched_view_idx = min(min_RIDF_idx.values())[1]
         return familiar_heading, matched_view_idx
 
@@ -75,8 +76,8 @@ class AnalysisToolkit:
         if bounds is not None:
             self.bounds = bounds
 
-        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, step=spacing, dtype=int)
-        y_ticks = np.arange(self.bounds[0][1], self.bounds[1][1] + 1, step=spacing, dtype=int)
+        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int)
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
         quiver_map = []
@@ -86,8 +87,7 @@ class AnalysisToolkit:
             for x in x_ticks:
                 filename = self.grid_filenames.get((x, y))
                 curr_view = self.downsample(cv2.imread(self.grid_path + filename))
-                RIDF = self.route_view_RIDF(curr_view)
-                familiar_heading, matched_view_idx = self.matched_route_view(RIDF)
+                familiar_heading, matched_view_idx = self.get_familiarity_data(curr_view)
                 grid_view_familiarity[str((x, y))] = familiar_heading
                 quiver_map.append(line_map[matched_view_idx])
         print(grid_view_familiarity)
@@ -122,15 +122,14 @@ class AnalysisToolkit:
 
     def route_analysis(self, step):
         cm = plt.get_cmap('YlOrRd')
-        line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
+        line_map = [cm(1. * i / (len(self.route_filenames) - 1)) for i in range(len(self.route_filenames) - 1)]
         quiver_map = []
 
         route_view_familiarity = {}
         for idx, filename in enumerate(self.route_filenames[::step]):
             print(f"Current view under analysis: {filename}")
             curr_view = self.downsample(cv2.imread(self.route_path + filename))
-            RIDF = self.route_view_RIDF(curr_view, self.route_headings[idx*step])
-            familiar_heading, matched_view_idx = self.matched_route_view(RIDF)
+            familiar_heading, matched_view_idx = self.get_familiarity_data(curr_view, self.route_headings[idx*step])
             route_view_familiarity[str((self.route_X[idx*step], self.route_Y[idx*step]))] = familiar_heading
             quiver_map.append(line_map[matched_view_idx])
         fig = plt.figure()
@@ -157,8 +156,7 @@ class AnalysisToolkit:
         plt.show()
 
     def view_analysis(self, curr_view, curr_view_heading=0, save_data=False):
-        RIDF = self.route_view_RIDF(curr_view, curr_view_heading)
-        familiar_heading, matched_view_idx = self.matched_route_view(RIDF)
+        familiar_heading, matched_view_idx = self.get_familiarity_data(curr_view, curr_view_heading)
         matched_route_filename = self.route_filenames[matched_view_idx]
         matched_route_view = self.downsample(cv2.imread(self.route_path + matched_route_filename))
         rotated_view = np.roll(curr_view, int(curr_view.shape[1] * ((familiar_heading - curr_view_heading) / self.vis_deg)), axis=1)
