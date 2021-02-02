@@ -11,31 +11,30 @@ class PerfectMemory(AnalysisToolkit):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
         self.model_name = 'PERFECTMEMORY'
 
-    # Perfect Memory Rotational Image Difference Function
-    def RIDF(self, curr_view, route_view, curr_view_heading=0):
-        RIDF = {}
-        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-            rotated_curr_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
-            # rotated_route_view = np.roll(route_view, int(route_view.shape[1] * -(route_view_heading / self.vis_deg)), axis=1)
-            mse = np.sum(self.image_difference(rotated_curr_view, route_view))
-            mse /= float(route_view.shape[0] * route_view.shape[1])
-            RIDF[(i+curr_view_heading)%self.vis_deg] = mse
-        return RIDF
+    def evaluate_familiarity(self, curr_view):
+        curr_view_downsampled = self.downsample(curr_view)
+        curr_view_RIDF = []
+        for idx, filename in enumerate(self.route_filenames):
+            route_view_downsampled = self.downsample(cv2.imread(self.route_path + filename))
+            mse = np.sum(self.image_difference(curr_view_downsampled, route_view_downsampled))
+            mse /= float(curr_view_downsampled.shape[0] * curr_view_downsampled.shape[1])
+            curr_view_RIDF.append(mse)
+        return route_view_RIDF
 
 if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route5", vis_deg=360, rot_deg=4)
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[600, 580], [630, 760]], save_data=True)
-    # pm.database_analysis(spacing=30, save_data=True)
+    pm.database_analysis(spacing=30, save_data=True)
 
     # Route view analysis
     # pm.route_analysis(step=100)
 
     # Grid view analysis
-    filename = pm.grid_filenames.get((480, 850))
-    grid_view = pm.downsample(cv2.imread(pm.grid_path + filename))
-    pm.view_analysis(curr_view=grid_view, save_data=False)
+    # filename = pm.grid_filenames.get((480, 850))
+    # grid_view = pm.downsample(cv2.imread(pm.grid_path + filename))
+    # pm.view_analysis(curr_view=grid_view, save_data=False)
 
     # On-route view analysis
     # idx = 10

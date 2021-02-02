@@ -41,12 +41,13 @@ class AnalysisToolkit:
     def image_difference(self, minuend, subtrahend):
         return (minuend.astype("float") - subtrahend.astype("float")) ** 2
 
-    def route_view_RIDF(self, curr_view, curr_view_heading=0):
-        route_view_RIDF = defaultdict(list)
-        for idx, filename in enumerate(self.route_filenames):
-            route_view = self.downsample(cv2.imread(self.route_path + filename))
-            [route_view_RIDF[k].append(v) for k, v in self.RIDF(curr_view, route_view, curr_view_heading, self.route_headings[idx]).items()]
-        return route_view_RIDF
+    # Rotational Image Difference Function
+    def RIDF(self, curr_view, route_view, curr_view_heading=0):
+        RIDF = defaultdict(list)
+        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+            rotated_curr_view = np.roll(curr_view, int(curr_view.shape[1] * (i / self.vis_deg)), axis=1)
+            RIDF[(i+curr_view_heading)%self.vis_deg].append(self.evalute_familiarity(rotated_curr_view))
+        return RIDF
 
     def get_familiarity_data(self, curr_view, curr_view_heading=0):
         route_view_RIDF = self.route_view_RIDF(curr_view, curr_view_heading)
@@ -55,6 +56,7 @@ class AnalysisToolkit:
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in route_view_RIDF.items()}
         matched_view_idx = min(min_RIDF_idx.values())[1]
         return familiar_heading, matched_view_idx
+
 
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
@@ -86,7 +88,7 @@ class AnalysisToolkit:
         for y in probar(y_ticks):
             for x in x_ticks:
                 filename = self.grid_filenames.get((x, y))
-                curr_view = self.downsample(cv2.imread(self.grid_path + filename))
+                curr_view = cv2.imread(self.grid_path + filename)
                 familiar_heading, matched_view_idx = self.get_familiarity_data(curr_view)
                 grid_view_familiarity[str((x, y))] = familiar_heading
                 quiver_map.append(line_map[matched_view_idx])
@@ -128,7 +130,7 @@ class AnalysisToolkit:
         route_view_familiarity = {}
         for idx, filename in enumerate(self.route_filenames[::step]):
             print(f"Current view under analysis: {filename}")
-            curr_view = self.downsample(cv2.imread(self.route_path + filename))
+            curr_view = cv2.imread(self.route_path + filename)
             familiar_heading, matched_view_idx = self.get_familiarity_data(curr_view, self.route_headings[idx*step])
             route_view_familiarity[str((self.route_X[idx*step], self.route_Y[idx*step]))] = familiar_heading
             quiver_map.append(line_map[matched_view_idx])
