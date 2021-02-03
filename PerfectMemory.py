@@ -49,7 +49,7 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=30, save_data=True)
 
     # Route view analysis
-    # pm.route_analysis(step=100)
+    pm.route_analysis(step=100)
 
     # Grid view analysis
     # filename = pm.grid_filenames.get((480, 850))
@@ -57,8 +57,8 @@ if __name__ == "__main__":
     # pm.view_analysis(view=grid_view, save_data=False)
 
     # On-route view analysis
-    idx = 1
-    filename = pm.route_filenames[idx]
-    route_view = cv2.imread(pm.route_path + filename)
-    route_view_heading = pm.route_headings[idx]
-    pm.view_analysis(view=route_view, view_heading=route_view_heading, save_data=True)
+    # idx = 1
+    # filename = pm.route_filenames[idx]
+    # route_view = cv2.imread(pm.route_path + filename)
+    # route_view_heading = pm.route_headings[idx]
+    # pm.view_analysis(view=route_view, view_heading=route_view_heading, save_data=False)
