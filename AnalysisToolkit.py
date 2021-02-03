@@ -70,8 +70,8 @@ class AnalysisToolkit:
         grid_view_familiarity = {}
         for y in probar(y_ticks):
             for x in x_ticks:
-                curr_view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
-                route_RIDF = self.route_RIDF(curr_view)
+                view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+                route_RIDF = self.route_RIDF(view)
 
                 familiar_heading = self.get_familiar_heading(route_RIDF)
                 grid_view_familiarity[str((x, y))] = familiar_heading
@@ -148,6 +148,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
+    # Route analysis was used to prove quiver headings are plotted correctly
     def route_analysis(self, step):
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_filenames) - 1)) for i in range(len(self.route_filenames) - 1)]
@@ -156,8 +157,8 @@ class AnalysisToolkit:
         route_view_familiarity = {}
         for idx, filename in enumerate(self.route_filenames[::step]):
             print(f"Current view under analysis: {filename}")
-            curr_view = cv2.imread(self.route_path + filename)
-            route_RIDF = self.route_RIDF(curr_view, self.route_headings[idx*step])
+            view = cv2.imread(self.route_path + filename)
+            route_RIDF = self.route_RIDF(view, self.route_headings[idx*step])
 
             familiar_heading = self.get_familiar_heading(route_RIDF)
             matched_route_view_idx = self.get_matched_route_view_idx(route_RIDF)
