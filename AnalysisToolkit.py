@@ -44,7 +44,7 @@ class AnalysisToolkit:
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
         time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
-        plot.savefig(path + self.model_name + '/' + str(time) + '_' + filename + '.png')
+        plot.savefig(path + self.model_name + '/' + str(time) + '_' + filename + '.png', dpi=1000)
 
     def save_dict_as_CSV(self, data, path="", filename=""):
         time = datetime.datetime.now()
@@ -108,7 +108,42 @@ class AnalysisToolkit:
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    def view_analysis(self, view, view_heading=0, save_data=False):
+    def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
+        RIDF = self.view_RIDF(view_1, view_2, view_1_heading)
+
+        familiar_heading = self.get_familiar_heading(RIDF)
+        rotated_view = np.roll(view_1, int(view_1.shape[1] * ((familiar_heading - view_1_heading) / self.vis_deg)), axis=1)
+
+        rotated_view_downsampled = self.downsample(rotated_view)
+        view_2_downsampled = self.downsample(view_2)
+
+        image_difference = self.image_difference(rotated_view_downsampled, view_2_downsampled)
+
+        plt.figure()
+        fig, ax = plt.subplots(3, 1)
+        fig.tight_layout(pad=2.0, w_pad=0)
+
+        ax[0].set_title(f"view_2 at initial heading: {view_2_heading}")
+        ax[0].imshow(cv2.cvtColor(view_2_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title(f"view_1 at heading: {familiar_heading}, rotated: {familiar_heading - view_1_heading}")
+        ax[1].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[2].set_title("Image difference")
+        ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        if save_data:
+            filename = "IMG_DIFF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
+        plt.plot(*zip(*sorted(RIDF.items())))
+        plt.title("RIDF")
+        plt.xlabel("Angle")
+        plt.ylabel("MSE of pixel intensities")
+        if save_data:
+            filename = "RIDF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
+    def best_matched_view_analysis(self, view, view_heading=0, save_data=False):
         route_RIDF = self.route_RIDF(view, view_heading)
 
         familiar_heading = self.get_familiar_heading(route_RIDF)
@@ -173,8 +208,10 @@ class AnalysisToolkit:
 
         ax.set_prop_cycle('color', line_map)
         [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
-        ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
-        ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
+        ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
+        ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
+        # ax.plot(533.925, 486.233, markersize=10, color='yellow', marker='*')
+        # ax.plot(500, 500, markersize=10, color='pink', marker='*')
 
         X = [x for x in self.route_X[::step]]
         Y = [y for y in self.route_Y[::step]]
@@ -185,5 +222,8 @@ class AnalysisToolkit:
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+
+        filename = "ROUTE"
+        self.save_plot(plt, "VIEW_ANALYSIS/", filename)
 
         plt.show()
