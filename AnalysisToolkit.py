@@ -71,13 +71,15 @@ class AnalysisToolkit:
         for y in probar(y_ticks):
             for x in x_ticks:
                 view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
-                route_RIDF = self.route_RIDF(view)
+                RIDF = self.get_view_familiarity(view)
 
-                familiar_heading = self.get_familiar_heading(route_RIDF)
+                familiar_heading = self.get_familiar_heading(RIDF)
                 grid_view_familiarity[str((x, y))] = familiar_heading
+                # grid_view_familiarity[str((x, y))] = 0
 
-                matched_route_view_idx = self.get_matched_route_view_idx(route_RIDF)
+                matched_route_view_idx = self.get_matched_route_view_idx(RIDF)
                 quiver_map.append(line_map[matched_route_view_idx])
+                # quiver_map.append(line_map[0])
         print(grid_view_familiarity)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
@@ -85,7 +87,7 @@ class AnalysisToolkit:
         ax.imshow(self.topdown_view)
 
         ax.set_prop_cycle('color', line_map)
-        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=7) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 

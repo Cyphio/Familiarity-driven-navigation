@@ -12,7 +12,7 @@ class PerfectMemory(AnalysisToolkit):
         self.model_name = 'PERFECTMEMORY'
 
     # Rotational Image Difference Function for two views
-    def RIDF(self, view_1, view_2, heading=0):
+    def rIDF(self, view_1, view_2, view_1_heading=0):
         view_1_downsampled = self.downsample(view_1)
         view_2_downsampled = self.downsample(view_2)
         view_RIDF = {}
@@ -20,7 +20,7 @@ class PerfectMemory(AnalysisToolkit):
             view_1_rotated = np.roll(view_1_downsampled, int(view_1_downsampled.shape[1] * (i / self.vis_deg)), axis=1)
             mse = np.sum(self.image_difference(view_1_rotated, view_2_downsampled))
             mse /= float(view_1_downsampled.shape[0] * view_1_downsampled.shape[1])
-            view_RIDF[(i + heading) % self.vis_deg] = mse
+            view_RIDF[(i + view_1_heading) % self.vis_deg] = mse
         return view_RIDF
 
     # Rotational Image Difference Function for a view over a route representation
@@ -28,7 +28,7 @@ class PerfectMemory(AnalysisToolkit):
         route_RIDF = defaultdict(list)
         for idx, filename in enumerate(self.route_filenames):
             route_view = cv2.imread(self.route_path + filename)
-            [route_RIDF[k].append(v) for k, v in self.RIDF(view, route_view, view_heading).items()]
+            [route_RIDF[k].append(v) for k, v in self.rIDF(view, route_view, view_heading).items()]
         return route_RIDF
 
     # Get the most familiar heading given an RIDF for a view
@@ -45,23 +45,23 @@ if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
-    # pm.database_analysis(spacing=10, bounds=[[600, 580], [630, 760]], save_data=True)
+    # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=30, save_data=True)
 
     # Route view analysis
     # pm.route_analysis(step=100)
 
     # Grid view analysis
-    filename = pm.grid_filenames.get((500, 500))
-    grid_view = cv2.imread(pm.grid_path + filename)
+    # filename = pm.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(pm.grid_path + filename)
     # pm.view_analysis(view=grid_view, save_data=False)
 
     # On-route view analysis
-    idx = 405
-    filename = pm.route_filenames[idx]
-    route_view = cv2.imread(pm.route_path + filename)
-    route_view_heading = pm.route_headings[idx]
-    pm.view_analysis(grid_view, route_view, view_2_heading=route_view_heading, save_data=True)
+    # idx = 405
+    # filename = pm.route_filenames[idx]
+    # route_view = cv2.imread(pm.route_path + filename)
+    # route_view_heading = pm.route_headings[idx]
+    # pm.view_analysis(grid_view, route_view, view_2_heading=route_view_heading, save_data=True)
 
     # fig = plt.figure()
     #
@@ -69,22 +69,28 @@ if __name__ == "__main__":
     # grid_view = cv2.imread(pm.route_path + pm.route_filenames[405])
     #
     # plt.imshow(cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-    # filename = "VIEW"
-    # pm.save_plot(plt, "VIEW_ANALYSIS/", filename)
+    # filename = "VIEW_ROT_0"
+    # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
     #
-    # view_rot_120 = np.roll(view, int(view.shape[1] * (120 / pm.vis_deg)), axis=1)
-    # plt.imshow(cv2.cvtColor(view_rot_120.astype(np.uint8), cv2.COLOR_BGR2RGB))
-    # filename = "VIEW_ROT_120"
-    # pm.save_plot(plt, "VIEW_ANALYSIS/", filename)
+    # view_rot_90 = np.roll(view, int(view.shape[1] * (90 / pm.vis_deg)), axis=1)
+    # plt.imshow(cv2.cvtColor(view_rot_90.astype(np.uint8), cv2.COLOR_BGR2RGB))
+    # filename = "VIEW_ROT_90"
+    # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
     #
-    # view_rot_240 = np.roll(view, int(view.shape[1] * (240 / pm.vis_deg)), axis=1)
-    # plt.imshow(cv2.cvtColor(view_rot_240.astype(np.uint8), cv2.COLOR_BGR2RGB))
-    # filename = "VIEW_ROT_240"
-    # pm.save_plot(plt, "VIEW_ANALYSIS/", filename)
+    # view_rot_180 = np.roll(view, int(view.shape[1] * (180 / pm.vis_deg)), axis=1)
+    # plt.imshow(cv2.cvtColor(view_rot_180.astype(np.uint8), cv2.COLOR_BGR2RGB))
+    # filename = "VIEW_ROT_180"
+    # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
     #
+    # view_rot_270 = np.roll(view, int(view.shape[1] * (270 / pm.vis_deg)), axis=1)
+    # plt.imshow(cv2.cvtColor(view_rot_270.astype(np.uint8), cv2.COLOR_BGR2RGB))
+    # filename = "VIEW_ROT_270"
+    # pm.save_plot(plt, "MISC/", filename)
+    # plt.show()
+
     # view_RIDF = pm.view_RIDF(view, grid_view, 0)
     # plt.plot(*zip(*sorted(view_RIDF.items())))
     # plt.title("RIDF")
