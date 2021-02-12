@@ -31,18 +31,20 @@ class PerfectMemory(AnalysisToolkit):
             [route_rIDF[k].append(v) for k, v in self.get_view_rIDF(view, route_view, view_heading).items()]
         return route_rIDF
 
-    # get the index of the best matching route view to a view given an RIDF for that view
+    # get the index of the best matching route view to a view given an rIDF for that view
     def get_matched_route_view_idx(self, route_rIDF):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in route_rIDF.items()}
         return min(min_RIDF_idx.values())[1]
 
+    # Rotational Familiarity Function
     def get_rFF(self, route_rIDF):
         return {k: -np.amin(v) for k, v in route_rIDF.items()}
 
+    # Calculates the signal strength of an rFF
     def get_signal_strength(self, rFF):
         return max(rFF.values()) / np.array(list(rFF.values())).mean()
 
-    # Get the most familiar heading given an RIDF for a view
+    # Get the most familiar heading given an rFF for a view
     def get_most_familiar_heading(self, rFF):
         return max(rFF, key=rFF.get)
 
