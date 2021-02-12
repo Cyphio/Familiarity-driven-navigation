@@ -71,23 +71,22 @@ class AnalysisToolkit:
         for y in probar(y_ticks):
             for x in x_ticks:
                 view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
-                RIDF = self.get_view_familiarity(view)
 
-                familiar_heading = self.get_familiar_heading(RIDF)
+                route_rIDF = self.get_route_rIDF(view)
+                rFF = self.get_rFF(route_rIDF)
+
+                familiar_heading = self.get_most_familiar_heading(rFF)
                 grid_view_familiarity[str((x, y))] = familiar_heading
-                # grid_view_familiarity[str((x, y))] = 0
 
-                matched_route_view_idx = self.get_matched_route_view_idx(RIDF)
+                matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
                 quiver_map.append(line_map[matched_route_view_idx])
-                # quiver_map.append(line_map[0])
-        print(grid_view_familiarity)
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
 
         ax.set_prop_cycle('color', line_map)
-        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=7) for i in range(len(line_map))]
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
@@ -111,9 +110,10 @@ class AnalysisToolkit:
         plt.show()
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
-        RIDF = self.view_RIDF(view_1, view_2, view_1_heading)
+        rIDF = self.get_view_rIDF(view_1, view_2, view_1_heading)
+        rFF = self.get_rFF(rIDF)
 
-        familiar_heading = self.get_familiar_heading(RIDF)
+        familiar_heading = self.get_most_familiar_heading(rFF)
         rotated_view = np.roll(view_1, int(view_1.shape[1] * ((familiar_heading - view_1_heading) / self.vis_deg)), axis=1)
 
         rotated_view_downsampled = self.downsample(rotated_view)
@@ -136,7 +136,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(RIDF.items())))
+        plt.plot(*zip(*sorted(rIDF.items())))
         plt.title("RIDF")
         plt.xlabel("Angle")
         plt.ylabel("MSE of pixel intensities")
@@ -146,11 +146,12 @@ class AnalysisToolkit:
         plt.show()
 
     def best_matched_view_analysis(self, view, view_heading=0, save_data=False):
-        route_RIDF = self.route_RIDF(view, view_heading)
+        route_rIDF = self.get_route_rIDF(view, view_heading)
+        rFF = self.get_rFF(route_rIDF)
 
-        familiar_heading = self.get_familiar_heading(route_RIDF)
+        familiar_heading = self.get_most_familiar_heading(rFF)
 
-        matched_route_view_idx = self.get_matched_route_view_idx(route_RIDF)
+        matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)
         matched_route_view_downsampled = self.downsample(matched_route_view)
@@ -159,13 +160,13 @@ class AnalysisToolkit:
         rotated_view_downsampled = self.downsample(rotated_view)
 
         image_difference = self.image_difference(rotated_view_downsampled, matched_route_view_downsampled)
-        view_RIDF = self.view_RIDF(rotated_view, matched_route_view, familiar_heading)
+        view_rIDF = self.get_view_rIDF(rotated_view, matched_route_view, familiar_heading)
 
         plt.figure()
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title("View, at rotation " + str(familiar_heading))
+        ax[0].set_title("view, at rotation " + str(familiar_heading))
         ax[0].imshow(cv2.cvtColor(rotated_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[1].set_title("Best matched route view: " + matched_route_view_filename)
         ax[1].imshow(cv2.cvtColor(matched_route_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
@@ -176,7 +177,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(view_RIDF.items())))
+        plt.plot(*zip(*sorted(view_rIDF.items())))
         plt.title("RIDF between view and best matched route view")
         plt.xlabel("Angle")
         plt.ylabel("MSE of pixel intensities")
@@ -195,10 +196,11 @@ class AnalysisToolkit:
         for idx, filename in enumerate(self.route_filenames[::step]):
             print(f"Current view under analysis: {filename}")
             view = cv2.imread(self.route_path + filename)
-            route_RIDF = self.route_RIDF(view, self.route_headings[idx*step])
+            route_rIDF = self.get_route_rIDF(view, self.route_headings[idx*step])
+            rFF = self.get_rFF(route_rIDF)
 
-            familiar_heading = self.get_familiar_heading(route_RIDF)
-            matched_route_view_idx = self.get_matched_route_view_idx(route_RIDF)
+            familiar_heading = self.get_most_familiar_heading(rFF)
+            matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
 
             route_view_familiarity[str((self.route_X[idx * step], self.route_Y[idx * step]))] = familiar_heading
             quiver_map.append(line_map[matched_route_view_idx])

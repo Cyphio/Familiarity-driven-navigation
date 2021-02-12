@@ -36,42 +36,46 @@ class PerfectMemory(AnalysisToolkit):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in route_rIDF.items()}
         return min(min_RIDF_idx.values())[1]
 
-    def get_view_familiarity(self, route_rIDF):
+    def get_rFF(self, route_rIDF):
         return {k: -np.amin(v) for k, v in route_rIDF.items()}
 
-    def get_signal_strength(self, data):
-        return max(data.values()) / np.array(list(data.values())).mean()
+    def get_signal_strength(self, rFF):
+        return max(rFF.values()) / np.array(list(rFF.values())).mean()
 
     # Get the most familiar heading given an RIDF for a view
-    def get_most_familiar_heading(self, data):
-        return max(familiarity_dict, key=familiarity_dict.get)
+    def get_most_familiar_heading(self, rFF):
+        return max(rFF, key=rFF.get)
 
 if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # pm.database_analysis(spacing=30, save_data=True)
+    pm.database_analysis(spacing=30, save_data=False)
 
     # Route view analysis
     # pm.route_analysis(step=100)
 
-    # Grid view analysis
-    filename = pm.grid_filenames.get((500, 500))
-    grid_view = cv2.imread(pm.grid_path + filename)
-    # pm.view_analysis(view=grid_view, save_data=False)
+    # Off-route view analysis
+    # filename = pm.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(pm.grid_path + filename)
+    # pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
     # idx = 405
-    idx = 405
-    filename = pm.route_filenames[idx]
-    route_view = cv2.imread(pm.route_path + filename)
+    # filename = pm.route_filenames[idx]
+    # route_view = cv2.imread(pm.route_path + filename)
     # route_view_heading = pm.route_headings[idx]
-    # pm.view_analysis(grid_view, route_view, view_2_heading=route_view_heading, save_data=True)
+    # pm.view_analysis(view_1=grid_view, view_2=route_view, view_2_heading=route_view_heading, save_data=False)
 
-    route_rIDF = pm.get_route_rIDF(route_view)
-    print(f"View best matches to route idx: {pm.get_matched_route_view_idx(route_rIDF)}\n")
+    # Off-route best matched view analysis
+    # filename = pm.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(pm.grid_path + filename)
+    # pm.best_matched_view_analysis(view=grid_view)
 
-    familiarity_dict = pm.get_view_familiarity(route_rIDF)
-    print(f"Signal strength: {pm.get_signal_strength(familiarity_dict)}\n")
-    print(f"Most familiar heading: {pm.get_most_familiar_heading(familiarity_dict)}\n")
+    # route_rIDF = pm.get_route_rIDF(grid_view)
+    # print(f"View best matches to route idx: {pm.get_matched_route_view_idx(route_rIDF)}\n")
+    #
+    # familiarity_dict = pm.get_view_familiarity(route_rIDF)
+    # print(f"Signal strength: {pm.get_signal_strength(familiarity_dict)}\n")
+    # print(f"Most familiar heading: {pm.get_most_familiar_heading(familiarity_dict)}\n")
