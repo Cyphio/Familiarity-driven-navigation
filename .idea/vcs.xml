@@ -3,5 +3,8 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/ant_world_image_databases" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ant_world_image_databases/ant_world_image_databases" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ant_world_image_databases/ant_world_image_databases_" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ant_world_image_databases_" vcs="Git" />
   </component>
 </project>

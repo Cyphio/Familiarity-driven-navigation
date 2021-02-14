@@ -53,15 +53,15 @@ if __name__ == "__main__":
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    pm.database_analysis(spacing=30, save_data=False)
+    # pm.database_analysis(spacing=30, save_data=False)
 
     # Route view analysis
     # pm.route_analysis(step=100)
 
     # Off-route view analysis
-    # filename = pm.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(pm.grid_path + filename)
-    # pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+    filename = pm.grid_filenames.get((500, 500))
+    grid_view = cv2.imread(pm.grid_path + filename)
+    pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
     # idx = 405
