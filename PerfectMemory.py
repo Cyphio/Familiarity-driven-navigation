@@ -57,9 +57,9 @@ if __name__ == "__main__":
     # pm.route_analysis(step=100)
 
     # Off-route view analysis
-    filename = pm.grid_filenames.get((500, 500))
-    grid_view = cv2.imread(pm.grid_path + filename)
-    pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+    # filename = pm.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(pm.grid_path + filename)
+    # pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
     # idx = 405
@@ -79,3 +79,17 @@ if __name__ == "__main__":
     # familiarity_dict = pm.get_view_familiarity(route_rIDF)
     # print(f"Signal strength: {pm.get_signal_strength(familiarity_dict)}\n")
     # print(f"Most familiar heading: {pm.get_most_familiar_heading(familiarity_dict)}\n")
+
+    pm.fig_generator()
+
+    # 610.001, 600.01
+    green = cv2.imread(pm.route_path + pm.route_filenames[263])
+    yellow = cv2.imread(pm.grid_path + pm.grid_filenames.get((580, 600)))
+    pink = cv2.imread(pm.grid_path + pm.grid_filenames.get((530, 600)))
+    blue = cv2.imread(pm.grid_path + pm.grid_filenames.get((460, 600)))
+    red = cv2.imread(pm.grid_path + pm.grid_filenames.get((310, 600)))
+    print(f"GREEN: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(green)))}\n"
+          f"YELLOW: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(yellow)))}\n"
+          f"PINK: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(pink)))}\n"
+          f"BLUE: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(blue)))}\n"
+          f"RED: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(red)))}")
