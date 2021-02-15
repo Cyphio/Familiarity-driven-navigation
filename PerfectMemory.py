@@ -1,8 +1,6 @@
 from AnalysisToolkit import AnalysisToolkit
 import numpy as np
 import cv2
-import math
-import matplotlib.pyplot as plt
 from collections import defaultdict
 
 class PerfectMemory(AnalysisToolkit):
