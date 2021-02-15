@@ -1,8 +1,6 @@
 from AnalysisToolkit import AnalysisToolkit
 import numpy as np
 import cv2
-import math
-import matplotlib.pyplot as plt
 from collections import defaultdict
 
 class PerfectMemory(AnalysisToolkit):
@@ -53,7 +51,7 @@ if __name__ == "__main__":
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    pm.database_analysis(spacing=30, save_data=False)
+    # pm.database_analysis(spacing=30, save_data=False)
 
     # Route view analysis
     # pm.route_analysis(step=100)
@@ -81,3 +79,17 @@ if __name__ == "__main__":
     # familiarity_dict = pm.get_view_familiarity(route_rIDF)
     # print(f"Signal strength: {pm.get_signal_strength(familiarity_dict)}\n")
     # print(f"Most familiar heading: {pm.get_most_familiar_heading(familiarity_dict)}\n")
+
+    pm.fig_generator()
+
+    # 610.001, 600.01
+    green = cv2.imread(pm.route_path + pm.route_filenames[263])
+    yellow = cv2.imread(pm.grid_path + pm.grid_filenames.get((580, 600)))
+    pink = cv2.imread(pm.grid_path + pm.grid_filenames.get((530, 600)))
+    blue = cv2.imread(pm.grid_path + pm.grid_filenames.get((460, 600)))
+    red = cv2.imread(pm.grid_path + pm.grid_filenames.get((310, 600)))
+    print(f"GREEN: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(green)))}\n"
+          f"YELLOW: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(yellow)))}\n"
+          f"PINK: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(pink)))}\n"
+          f"BLUE: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(blue)))}\n"
+          f"RED: {pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(red)))}")

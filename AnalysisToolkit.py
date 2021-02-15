@@ -214,8 +214,6 @@ class AnalysisToolkit:
         [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
-        # ax.plot(533.925, 486.233, markersize=10, color='yellow', marker='*')
-        # ax.plot(500, 500, markersize=10, color='pink', marker='*')
 
         X = [x for x in self.route_X[::step]]
         Y = [y for y in self.route_Y[::step]]
@@ -229,5 +227,38 @@ class AnalysisToolkit:
 
         filename = "ROUTE"
         self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+
+        plt.show()
+
+    def fig_generator(self):
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / (len(self.route_filenames) - 1)) for i in range(len(self.route_filenames) - 1)]
+
+        fig = plt.figure()
+        ax = fig.add_subplot()
+
+        ax.imshow(self.topdown_view)
+        ax.axis('equal')
+
+        ax.set_prop_cycle('color', line_map)
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
+        ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
+        ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
+
+        ax.plot(610, 600, markersize=10, color='lime', marker='*')
+        ax.plot(580, 600, markersize=10, color='yellow', marker='*')
+        ax.plot(530, 600, markersize=10, color='pink', marker='*')
+        ax.plot(460, 600, markersize=10, color='blue', marker='*')
+        ax.plot(310, 600, markersize=10, color='red', marker='*')
+        ax.add_patch(plt.Circle((610, 600), 30, color='yellow', fill=False))
+        ax.add_patch(plt.Circle((610, 600), 80, color='pink', fill=False))
+        ax.add_patch(plt.Circle((610, 600), 150, color='blue', fill=False))
+        ax.add_patch(plt.Circle((610, 600), 300, color='red', fill=False))
+
+        ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
+        ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+
+        filename = "FIG"
+        self.save_plot(plt, "MISC/", filename)
 
         plt.show()
