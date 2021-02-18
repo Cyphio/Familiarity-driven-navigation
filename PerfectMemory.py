@@ -81,57 +81,58 @@ if __name__ == "__main__":
     # print(f"Signal strength: {pm.get_signal_strength(familiarity_dict)}\n")
     # print(f"Most familiar heading: {pm.get_most_familiar_heading(familiarity_dict)}\n")
 
-    pm.fig_generator()
-
-    # 610.001, 600.01
-    yellow = cv2.imread(pm.route_path + pm.route_filenames[263])
-    yellow_heading = pm.route_headings[263]
-    rIDF = pm.get_view_rIDF(yellow, yellow, yellow_heading)
-    plt.plot(*zip(*sorted(rIDF.items())))
-    plt.title("rIDF between view at yellow star and itself\n"
-              "Confidence: " + str(pm.get_signal_strength(rIDF)))
-    plt.xlabel("Angle")
-    plt.ylabel("MSE in pixel intensities")
-    # filename = "YELLOW_RIDF"
-    # pm.save_plot(plt, "MISC/", filename)
-    plt.show()
-
-    pink = cv2.imread(pm.grid_path + pm.grid_filenames.get((620, 600)))
-    rIDF = pm.get_view_rIDF(pink, yellow)
-    plt.plot(*zip(*sorted(rIDF.items())))
-    plt.title("rIDF between view at pink star and view at yellow star\n"
-              "Confidence: " + str(pm.get_signal_strength(rIDF)))
-    plt.xlabel("Angle")
-    plt.ylabel("MSE in pixel intensities")
-    # filename = "PINK_RIDF"
-    # pm.save_plot(plt, "MISC/", filename)
-    plt.show()
-
-    green = cv2.imread(pm.grid_path + pm.grid_filenames.get((700, 600)))
-    rIDF = pm.get_view_rIDF(green, yellow)
-    plt.plot(*zip(*sorted(rIDF.items())))
-    plt.title("rIDF between view at green star and view at yellow star\n"
-              "Confidence: " + str(pm.get_signal_strength(rIDF)))
-    plt.xlabel("Angle")
-    plt.ylabel("MSE in pixel intensities")
-    # filename = "GREEN_RIDF"
-    # pm.save_plot(plt, "MISC/", filename)
-    plt.show()
-
-    # on_route = cv2.imread(pm.route_path + pm.route_filenames[263])
-    # data = {}
-    # data[0] = pm.get_signal_strength(pm.get_rFF(pm.get_route_rIDF(on_route)))
-    # for x in np.arange(600, 300, step=-10, dtype=int):
-    #     print(x)
-    #     off_route = cv2.imread(pm.grid_path + pm.grid_filenames.get((x, 600)))
-    #     data[-(610-x)] = pm.get_signal_strength(pm.get_rFF(pm.get_view_rIDF(off_route, on_route)))
+    # pm.fig_generator()
     #
-    # plt.plot(*zip(*sorted(data.items(), reverse=True)))
-    # plt.title("Signal strength over distance")
-    # plt.xlabel("Delta x from green star")
-    # plt.ylabel("Signal strength")
-    #
-    # filename = "GRAPH"
-    # pm.save_plot(plt, "MISC/", filename)
-    #
+    # # 610.001, 600.01
+    # yellow = cv2.imread(pm.route_path + pm.route_filenames[263])
+    # yellow_heading = pm.route_headings[263]
+    # rIDF = pm.get_view_rIDF(yellow, yellow, yellow_heading)
+    # plt.plot(*zip(*sorted(rIDF.items())))
+    # plt.title("rIDF between view at yellow star and itself\n"
+    #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
+    # plt.xlabel("Angle")
+    # plt.ylabel("MSE in pixel intensities")
+    # # filename = "YELLOW_RIDF"
+    # # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
+    #
+    # pink = cv2.imread(pm.grid_path + pm.grid_filenames.get((620, 600)))
+    # rIDF = pm.get_view_rIDF(pink, yellow)
+    # plt.plot(*zip(*sorted(rIDF.items())))
+    # plt.title("rIDF between view at pink star and view at yellow star\n"
+    #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
+    # plt.xlabel("Angle")
+    # plt.ylabel("MSE in pixel intensities")
+    # # filename = "PINK_RIDF"
+    # # pm.save_plot(plt, "MISC/", filename)
+    # plt.show()
+    #
+    # green = cv2.imread(pm.grid_path + pm.grid_filenames.get((700, 600)))
+    # rIDF = pm.get_view_rIDF(green, yellow)
+    # plt.plot(*zip(*sorted(rIDF.items())))
+    # plt.title("rIDF between view at green star and view at yellow star\n"
+    #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
+    # plt.xlabel("Angle")
+    # plt.ylabel("MSE in pixel intensities")
+    # # filename = "GREEN_RIDF"
+    # # pm.save_plot(plt, "MISC/", filename)
+    # plt.show()
+
+    on_route = cv2.imread(pm.route_path + pm.route_filenames[263])
+    data = {}
+    # data[0] = pm.get_signal_strength(pm.get_rFF(pm.get_view_rIDF(on_route, on_route)))
+    for x in np.arange(610, 900, step=10, dtype=int):
+        print(x)
+        off_route = cv2.imread(pm.grid_path + pm.grid_filenames.get((x, 600)))
+        data[x-610] = pm.get_signal_strength(pm.get_view_rIDF(off_route, on_route))
+
+    plt.plot(*zip(*sorted(data.items(), reverse=True)))
+    plt.title("Signal strength over distance")
+    plt.xlabel("X-axis displacement from yellow star")
+    plt.ylabel("Signal strength")
+    plt.tight_layout()
+
+    filename = "GRAPH"
+    pm.save_plot(plt, "MISC/", filename)
+
+    plt.show()
