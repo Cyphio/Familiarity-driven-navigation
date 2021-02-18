@@ -245,20 +245,20 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
 
-        ax.plot(610, 600, markersize=10, color='lime', marker='*')
-        ax.plot(580, 600, markersize=10, color='yellow', marker='*')
-        ax.plot(530, 600, markersize=10, color='pink', marker='*')
-        ax.plot(460, 600, markersize=10, color='blue', marker='*')
-        ax.plot(310, 600, markersize=10, color='red', marker='*')
-        ax.add_patch(plt.Circle((610, 600), 30, color='yellow', fill=False))
-        ax.add_patch(plt.Circle((610, 600), 80, color='pink', fill=False))
-        ax.add_patch(plt.Circle((610, 600), 150, color='blue', fill=False))
-        ax.add_patch(plt.Circle((610, 600), 300, color='red', fill=False))
+        ax.plot(610, 600, markersize=10, color='yellow', marker='*')
+        ax.plot(620, 600, markersize=10, color='pink', marker='*')
+        ax.plot(700, 600, markersize=10, color='lime', marker='*')
+        # ax.add_patch(plt.Circle((610, 600), 30, color='yellow', fill=False))
+        # ax.add_patch(plt.Circle((610, 600), 80, color='pink', fill=False))
+        # ax.add_patch(plt.Circle((610, 600), 150, color='blue', fill=False))
+        # ax.add_patch(plt.Circle((610, 600), 300, color='red', fill=False))
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+        # ax.set_xlim([600, 710])
+        # ax.set_ylim([590, 610])
 
-        filename = "FIG"
+        filename = "ZOOMEDOUT"
         self.save_plot(plt, "MISC/", filename)
 
         plt.show()
