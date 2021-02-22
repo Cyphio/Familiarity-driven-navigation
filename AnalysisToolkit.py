@@ -7,8 +7,7 @@ import cv2
 from pyprobar import probar
 import datetime
 import csv
-import geopy.distance
-from collections import defaultdict
+import itertools
 
 class AnalysisToolkit:
 
@@ -67,29 +66,35 @@ class AnalysisToolkit:
         if bounds is None:
             bounds = self.bounds
 
+        x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+
         if corridor is not None:
-            x_ticks = 1
-            y_ticks = 1
+            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10)), spacing, dtype=int), itertools.repeat(y)))
+                                                                for x, y in zip(self.route_X[::spacing], np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int))]))
+            print(quiver_coors)
+
         else:
-            x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
-            y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+            quiver_coors = [(x, y) for x in x_ticks for y in y_ticks]
+            print(quiver_coors)
+
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
         quiver_map = []
 
         grid_view_familiarity = {}
-        for y in probar(y_ticks):
-            for x in x_ticks:
-                view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+        for x, y in probar(quiver_coors):
+            view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
 
-                route_rIDF = self.get_route_rIDF(view)
-                rFF = self.get_rFF(route_rIDF)
+            route_rIDF = self.get_route_rIDF(view)
+            rFF = self.get_rFF(route_rIDF)
 
-                familiar_heading = self.get_most_familiar_heading(rFF)
-                grid_view_familiarity[str((x, y))] = familiar_heading
+            familiar_heading = self.get_most_familiar_heading(rFF)
+            grid_view_familiarity[str((x, y))] = familiar_heading
 
-                matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
-                quiver_map.append(line_map[matched_route_view_idx])
+            matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
+            quiver_map.append(line_map[matched_route_view_idx])
+
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
         ax = fig.add_subplot()
 
@@ -100,10 +105,9 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
-        X, Y = np.meshgrid(x_ticks, y_ticks)
         u = [np.sin(np.deg2rad(n)) for n in grid_view_familiarity.values()]
         v = [np.cos(np.deg2rad(n)) for n in grid_view_familiarity.values()]
-        ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+        ax.quiver([coor[0] for coor in quiver_coors], [coor[1] for coor in quiver_coors], u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))

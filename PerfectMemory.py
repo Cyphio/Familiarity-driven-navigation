@@ -2,7 +2,6 @@ from AnalysisToolkit import AnalysisToolkit
 import numpy as np
 import cv2
 from collections import defaultdict
-import itertools
 import matplotlib.pyplot as plt
 
 class PerfectMemory(AnalysisToolkit):
@@ -53,7 +52,7 @@ if __name__ == "__main__":
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # pm.database_analysis(spacing=30, save_data=False)
+    pm.database_analysis(spacing=20, corridor=60, save_data=True)
     # pm.database_fitness(spacing=30, save_data=True)
 
     # Route view analysis
@@ -138,7 +137,3 @@ if __name__ == "__main__":
     # # pm.save_plot(plt, "MISC/", filename)
     #
     # plt.show()
-
-    corridor = 50
-    data = [zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10)), 10, dtype=int), itertools.repeat(y)) for x, y in zip(pm.route_X, np.arange(pm.bounds[1][1], pm.bounds[0][1] - 1, -10, dtype=int))]
-    print(data)
