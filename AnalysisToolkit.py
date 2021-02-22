@@ -7,6 +7,7 @@ import cv2
 from pyprobar import probar
 import datetime
 import csv
+import geopy.distance
 from collections import defaultdict
 
 class AnalysisToolkit:
@@ -40,6 +41,11 @@ class AnalysisToolkit:
 
     def image_difference(self, minuend, subtrahend):
         return (minuend.astype("float") - subtrahend.astype("float")) ** 2
+
+    def get_real_heading(self, x, y):
+        coor = min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0]-x)**2 + (route_coor[1]-y)**2))
+        idx = list(zip(self.route_X, self.route_Y)).index(coor)
+        return self.route_headings[idx]
 
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
@@ -108,6 +114,30 @@ class AnalysisToolkit:
             self.save_plot(plt, "DATABASE_ANALYSIS/", filename)
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
+
+    def database_fitness(self, spacing, bounds=None, save_data=False):
+        if bounds is not None:
+            self.bounds = bounds
+
+        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int)
+
+        errors = {}
+        for y in probar(y_ticks):
+            for x in x_ticks:
+                view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+
+                route_rIDF = self.get_route_rIDF(view)
+                rFF = self.get_rFF(route_rIDF)
+
+                familiar_heading = self.get_most_familiar_heading(rFF)
+                real_heading = self.get_real_heading(x, y)
+                errors[str((x, y))] = abs(real_heading-familiar_heading)
+        errors['AVG'] = np.mean(list(errors.values()))
+
+        if save_data:
+            filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + 'FITNESS'
+            self.save_dict_as_CSV(errors, "DATABASE_ANALYSIS/", filename)
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
         rIDF = self.get_view_rIDF(view_1, view_2, view_1_heading)
