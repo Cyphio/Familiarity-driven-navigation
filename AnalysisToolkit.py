@@ -63,12 +63,16 @@ class AnalysisToolkit:
         except IOError:
             print("I/O error")
 
-    def database_analysis(self, spacing, bounds=None, save_data=False):
-        if bounds is not None:
-            self.bounds = bounds
+    def database_analysis(self, spacing, bounds=None, corridor=None, save_data=False):
+        if bounds is None:
+            bounds = self.bounds
 
-        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, spacing, dtype=int)
-        y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int)
+        if corridor is not None:
+            x_ticks = 1
+            y_ticks = 1
+        else:
+            x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+            y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
         quiver_map = []
@@ -104,8 +108,8 @@ class AnalysisToolkit:
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
         ax.grid(which='major', axis='both', linestyle=':')
-        ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
-        ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+        ax.set_xlim([bounds[0][0], bounds[1][0]])
+        ax.set_ylim([bounds[0][1], bounds[1][1]])
         ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
 
