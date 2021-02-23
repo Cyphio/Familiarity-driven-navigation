@@ -70,8 +70,8 @@ class AnalysisToolkit:
         y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
 
         if corridor is not None:
-            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10)), spacing, dtype=int), itertools.repeat(y)))
-                                                                for x, y in zip(self.route_X[::spacing], np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int))]))
+            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10))+1, spacing, dtype=int), itertools.repeat(y)))
+                                                               for x, y in zip([self.route_X[min(range(len(self.route_Y)), key=lambda i: abs(self.route_Y[i]-y))] for y in y_ticks], y_ticks)]))
             print(quiver_coors)
 
         else:
@@ -88,7 +88,6 @@ class AnalysisToolkit:
 
             route_rIDF = self.get_route_rIDF(view)
             rFF = self.get_rFF(route_rIDF)
-
             familiar_heading = self.get_most_familiar_heading(rFF)
             grid_view_familiarity[str((x, y))] = familiar_heading
 
@@ -105,9 +104,10 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
+        X, Y = zip(*quiver_coors)
         u = [np.sin(np.deg2rad(n)) for n in grid_view_familiarity.values()]
         v = [np.cos(np.deg2rad(n)) for n in grid_view_familiarity.values()]
-        ax.quiver([coor[0] for coor in quiver_coors], [coor[1] for coor in quiver_coors], u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+        ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
@@ -123,24 +123,32 @@ class AnalysisToolkit:
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    def database_fitness(self, spacing, bounds=None, save_data=False):
+    def database_fitness(self, spacing, bounds=None, corridor=None, save_data=False):
         if bounds is not None:
             self.bounds = bounds
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, spacing, dtype=int)
         y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int)
 
+        if corridor is not None:
+            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10))+1, spacing, dtype=int), itertools.repeat(y)))
+                                                               for x, y in zip([self.route_X[min(range(len(self.route_Y)), key=lambda i: abs(self.route_Y[i]-y))] for y in y_ticks], y_ticks)]))
+            print(quiver_coors)
+
+        else:
+            quiver_coors = [(x, y) for x in x_ticks for y in y_ticks]
+            print(quiver_coors)
+
         errors = {}
-        for y in probar(y_ticks):
-            for x in x_ticks:
-                view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+        for x, y in probar(quiver_coors):
+            view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
 
-                route_rIDF = self.get_route_rIDF(view)
-                rFF = self.get_rFF(route_rIDF)
+            route_rIDF = self.get_route_rIDF(view)
+            rFF = self.get_rFF(route_rIDF)
 
-                familiar_heading = self.get_most_familiar_heading(rFF)
-                real_heading = self.get_real_heading(x, y)
-                errors[str((x, y))] = abs(real_heading-familiar_heading)
+            familiar_heading = self.get_most_familiar_heading(rFF)
+            real_heading = self.get_real_heading(x, y)
+            errors[str((x, y))] = abs(real_heading-familiar_heading)
         errors['AVG'] = np.mean(list(errors.values()))
 
         if save_data:

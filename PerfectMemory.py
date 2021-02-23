@@ -35,25 +35,25 @@ class PerfectMemory(AnalysisToolkit):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in route_rIDF.items()}
         return min(min_RIDF_idx.values())[1]
 
-    # Rotational Familiarity Function
-    def get_rFF(self, route_rIDF):
-        return {k: -np.amin(v) for k, v in route_rIDF.items()}
-
     # Calculates the signal strength of an rIDF
     def get_signal_strength(self, rIDF):
         return -(min(rIDF.values()) / np.array(list(rIDF.values())).mean())
 
+    # Rotational Familiarity Function
+    def get_rFF(self, route_rIDF):
+        return {k: -np.amin(v) for k, v in route_rIDF.items()}
+
     # Get the most familiar heading given an rIDF for a view
-    def get_most_familiar_heading(self, rIDF):
-        return min(rIDF, key=rIDF.get)
+    def get_most_familiar_heading(self, rFF):
+        return max(rFF, key=rFF.get)
 
 if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    pm.database_analysis(spacing=20, corridor=60, save_data=True)
-    # pm.database_fitness(spacing=30, save_data=True)
+    pm.database_analysis(spacing=10, corridor=20, save_data=True)
+    # pm.database_fitness(spacing=20, corridor=20, save_data=True)
 
     # Route view analysis
     # pm.route_analysis(step=100)
