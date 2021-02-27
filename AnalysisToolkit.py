@@ -1,4 +1,6 @@
 import math
+from collections import namedtuple
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -54,11 +56,12 @@ class AnalysisToolkit:
     def save_dict_as_CSV(self, data, path="", filename=""):
         time = datetime.datetime.now()
         time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
+        keys = data[0].keys()
         try:
-            with open(path + self.model_name + '/' + str(time) + '_' + filename + '.csv', 'w') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=data.keys())
-                writer.writeheader()
-                writer.writerow(data)
+            with open(path + self.model_name + '/' + str(time) + '_' + filename + '.csv', 'w', newline='') as csvfile:
+                dict_writer = csv.DictWriter(csvfile, keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(data)
         except IOError:
             print("I/O error")
 
@@ -72,24 +75,22 @@ class AnalysisToolkit:
         if corridor is not None:
             quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10))+1, spacing, dtype=int), itertools.repeat(y)))
                                                                for x, y in zip([self.route_X[min(range(len(self.route_Y)), key=lambda i: abs(self.route_Y[i]-y))] for y in y_ticks], y_ticks)]))
-            print(quiver_coors)
-
         else:
             quiver_coors = [(x, y) for x in x_ticks for y in y_ticks]
-            print(quiver_coors)
 
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
         quiver_map = []
 
-        grid_view_familiarity = {}
+        grid_view_familiarity = []
         for x, y in probar(quiver_coors):
             view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
 
             route_rIDF = self.get_route_rIDF(view)
             rFF = self.get_rFF(route_rIDF)
             familiar_heading = self.get_most_familiar_heading(rFF)
-            grid_view_familiarity[str((x, y))] = familiar_heading
+
+            grid_view_familiarity.append({"X_COOR": x, "Y_COOR": y, "HEADING": familiar_heading})
 
             matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
             quiver_map.append(line_map[matched_route_view_idx])
@@ -105,8 +106,8 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
         X, Y = zip(*quiver_coors)
-        u = [np.sin(np.deg2rad(n)) for n in grid_view_familiarity.values()]
-        v = [np.cos(np.deg2rad(n)) for n in grid_view_familiarity.values()]
+        u = [np.sin(np.deg2rad(n["HEADING"])) for n in grid_view_familiarity]
+        v = [np.cos(np.deg2rad(n["HEADING"])) for n in grid_view_familiarity]
         ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
@@ -123,37 +124,23 @@ class AnalysisToolkit:
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    def database_fitness(self, spacing, bounds=None, corridor=None, save_data=False):
-        if bounds is not None:
-            self.bounds = bounds
+    def avg_error(self, data_path):
+        data = csv.DictReader(open(data_path))
+        errors = []
+        for row in data:
+            real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
+            errors.append(abs(real_heading - int(row['HEADING'])))
+        return np.mean(errors)
 
-        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, spacing, dtype=int)
-        y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int)
+    def prcnt_correct(self, threshold, data_path):
+        data = csv.DictReader(open(data_path))
+        correct_count = 0
 
-        if corridor is not None:
-            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10))+1, spacing, dtype=int), itertools.repeat(y)))
-                                                               for x, y in zip([self.route_X[min(range(len(self.route_Y)), key=lambda i: abs(self.route_Y[i]-y))] for y in y_ticks], y_ticks)]))
-            print(quiver_coors)
-
-        else:
-            quiver_coors = [(x, y) for x in x_ticks for y in y_ticks]
-            print(quiver_coors)
-
-        errors = {}
-        for x, y in probar(quiver_coors):
-            view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
-
-            route_rIDF = self.get_route_rIDF(view)
-            rFF = self.get_rFF(route_rIDF)
-
-            familiar_heading = self.get_most_familiar_heading(rFF)
-            real_heading = self.get_real_heading(x, y)
-            errors[str((x, y))] = abs(real_heading-familiar_heading)
-        errors['AVG'] = np.mean(list(errors.values()))
-
-        if save_data:
-            filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing) + '_' + 'FITNESS'
-            self.save_dict_as_CSV(errors, "DATABASE_ANALYSIS/", filename)
+        for row in data:
+            real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
+            if (real_heading - threshold) % self.vis_deg <= int(row['HEADING']) <= (real_heading + threshold) % self.vis_deg:
+                correct_count += 1
+        return correct_count
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
         rIDF = self.get_view_rIDF(view_1, view_2, view_1_heading)

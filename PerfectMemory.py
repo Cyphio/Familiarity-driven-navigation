@@ -51,9 +51,11 @@ if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
+    # pm.database_analysis(spacing=30, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    pm.database_analysis(spacing=10, corridor=20, save_data=True)
-    # pm.database_fitness(spacing=20, corridor=20, save_data=True)
+    # pm.database_analysis(spacing=20, corridor=20, save_data=True)
+    # data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_17-36-5_ant1_route1_0x500_500.csv"
+    # print(pm.avg_error(data_path=data_path))
 
     # Route view analysis
     # pm.route_analysis(step=100)
@@ -67,7 +69,7 @@ if __name__ == "__main__":
     # idx = 405
     # filename = pm.route_filenames[idx]
     # route_view = cv2.imread(pm.route_path + filename)
-    # route_view_heading = pm.route_headings[idx]
+    # route_heading = pm.route_headings[idx]
     # pm.view_analysis(view_1=grid_view, view_2=route_view, view_2_heading=route_view_heading, save_data=False)
 
     # Off-route best matched view analysis
@@ -93,8 +95,9 @@ if __name__ == "__main__":
     #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
     # plt.xlabel("Angle")
     # plt.ylabel("MSE in pixel intensities")
-    # # filename = "YELLOW_RIDF"
-    # # pm.save_plot(plt, "MISC/", filename)
+    # plt.ylim([400, 1100])
+    # filename = "YELLOW_RIDF"
+    # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
     #
     # pink = cv2.imread(pm.grid_path + pm.grid_filenames.get((620, 600)))
@@ -104,8 +107,9 @@ if __name__ == "__main__":
     #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
     # plt.xlabel("Angle")
     # plt.ylabel("MSE in pixel intensities")
-    # # filename = "PINK_RIDF"
-    # # pm.save_plot(plt, "MISC/", filename)
+    # plt.ylim([400, 1100])
+    # filename = "PINK_RIDF"
+    # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
     #
     # green = cv2.imread(pm.grid_path + pm.grid_filenames.get((700, 600)))
@@ -115,13 +119,14 @@ if __name__ == "__main__":
     #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
     # plt.xlabel("Angle")
     # plt.ylabel("MSE in pixel intensities")
-    # # filename = "GREEN_RIDF"
-    # # pm.save_plot(plt, "MISC/", filename)
+    # plt.ylim([400, 1100])
+    # filename = "GREEN_RIDF"
+    # pm.save_plot(plt, "MISC/", filename)
     # plt.show()
 
     # on_route = cv2.imread(pm.route_path + pm.route_filenames[263])
     # data = {}
-    # data[0] = pm.get_signal_strength(pm.get_view_rIDF(on_route, on_route))
+    # # data[0] = pm.get_signal_strength(pm.get_view_rIDF(on_route, on_route))
     # for x in np.arange(620, 900, step=10, dtype=int):
     #     print(x)
     #     off_route = cv2.imread(pm.grid_path + pm.grid_filenames.get((x, 600)))
