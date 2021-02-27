@@ -1,6 +1,3 @@
-import math
-from collections import namedtuple
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,6 +11,8 @@ import itertools
 class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
+        plt.rcParams['figure.dpi'] = 750
+
         self.route_name = route
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -132,15 +131,27 @@ class AnalysisToolkit:
             errors.append(abs(real_heading - int(row['HEADING'])))
         return np.mean(errors)
 
-    def prcnt_correct(self, threshold, data_path):
+    def prcnt_correct(self, data_path, threshold):
         data = csv.DictReader(open(data_path))
-        correct_count = 0
-
+        correct_count, total_count = 0, 0
         for row in data:
             real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
-            if (real_heading - threshold) % self.vis_deg <= int(row['HEADING']) <= (real_heading + threshold) % self.vis_deg:
-                correct_count += 1
-        return correct_count
+            correct_count += int((real_heading - threshold) % self.vis_deg <= int(row['HEADING']) <= (real_heading + threshold) % self.vis_deg)
+            total_count += 1
+        return (correct_count/total_count)*100
+
+    def error_boxplot(self, data_1_path, data_2_path):
+        data_1 = csv.DictReader(open(data_1_path))
+        data_2 = csv.DictReader(open(data_2_path))
+        heading_errors_1 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_1]
+        heading_errors_2 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_2]
+        df = pd.DataFrame([heading_errors_1, heading_errors_2], index=["Heading errors for data 1", "Heading errors for data 2"])
+        df.T.boxplot(vert=False)
+        plt.subplots_adjust(left=0.3)
+        plt.title("Boxplot of heading errors")
+        plt.xlabel("Heading error in degrees")
+        plt.xticks(np.arange(min(heading_errors_1 + heading_errors_2), max(heading_errors_1 + heading_errors_2) + 1, 5))
+        plt.show()
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
         rIDF = self.get_view_rIDF(view_1, view_2, view_1_heading)
