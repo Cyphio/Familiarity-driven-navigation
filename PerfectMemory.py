@@ -51,13 +51,13 @@ if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
-    # pm.database_analysis(spacing=30, save_data=True)
+    pm.database_analysis(spacing=30, save_data=False)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=20, save_data=True)
     data_1_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-6-49_ant1_route1_150x750_30.csv"
     data_2_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-23-4_ant1_route1_140x740_20.csv"
     # print(pm.prcnt_correct(data_path=data_path, threshold=10))
-    print(pm.error_boxplot(data_1_path, data_2_path))
+    # pm.error_boxplot(data_1_path, data_2_path, save_data=True)
 
     # Route view analysis
     # pm.route_analysis(step=100)

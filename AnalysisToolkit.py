@@ -11,7 +11,7 @@ import itertools
 class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
-        plt.rcParams['figure.dpi'] = 750
+        plt.rcParams['figure.dpi'] = 1000
 
         self.route_name = route
         self.vis_deg = vis_deg
@@ -94,7 +94,8 @@ class AnalysisToolkit:
             matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
             quiver_map.append(line_map[matched_route_view_idx])
 
-        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
+        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
+        # fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
@@ -140,17 +141,24 @@ class AnalysisToolkit:
             total_count += 1
         return (correct_count/total_count)*100
 
-    def error_boxplot(self, data_1_path, data_2_path):
+    def error_boxplot(self, data_1_path, data_2_path, save_data=False):
         data_1 = csv.DictReader(open(data_1_path))
         data_2 = csv.DictReader(open(data_2_path))
         heading_errors_1 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_1]
         heading_errors_2 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_2]
-        df = pd.DataFrame([heading_errors_1, heading_errors_2], index=["Heading errors for data 1", "Heading errors for data 2"])
-        df.T.boxplot(vert=False)
-        plt.subplots_adjust(left=0.3)
-        plt.title("Boxplot of heading errors")
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        df = pd.DataFrame([heading_errors_1, heading_errors_2], index=["", ""])
+        df.T.boxplot(vert=False, flierprops=dict(markerfacecolor='r', marker='s'))
+        plt.title("Boxplot of errors in determined headings")
         plt.xlabel("Heading error in degrees")
-        plt.xticks(np.arange(min(heading_errors_1 + heading_errors_2), max(heading_errors_1 + heading_errors_2) + 1, 5))
+        plt.xticks(rotation=90)
+        ax.xaxis.set_major_locator(plticker.MultipleLocator(10))
+        ax.xaxis.set_minor_locator(plticker.AutoMinorLocator())
+        plt.tight_layout()
+        if save_data:
+            filename = self.route_name + '_BOXPLOT'
+            self.save_plot(plt, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
