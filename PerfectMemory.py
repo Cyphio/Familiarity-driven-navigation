@@ -51,12 +51,11 @@ if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
-    pm.database_analysis(spacing=30, save_data=False)
+    # pm.database_analysis(spacing=30, save_data=False)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # pm.database_analysis(spacing=20, corridor=20, save_data=True)
-    data_1_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-6-49_ant1_route1_150x750_30.csv"
-    data_2_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-23-4_ant1_route1_140x740_20.csv"
-    # print(pm.prcnt_correct(data_path=data_path, threshold=10))
+    # pm.database_analysis(spacing=20, corridor=30, save_data=True)
+    # data_1_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-6-49_ant1_route1_150x750_30.csv"
+    # data_2_path = "DATABASE_ANALYSIS/PERFECTMEMORY/28-2-2021_15-45-13_ant1_route1_140x740_20.csv"
     # pm.error_boxplot(data_1_path, data_2_path, save_data=True)
 
     # Route view analysis
@@ -75,9 +74,7 @@ if __name__ == "__main__":
     # pm.view_analysis(view_1=grid_view, view_2=route_view, view_2_heading=route_view_heading, save_data=False)
 
     # Off-route best matched view analysis
-    # filename = pm.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(pm.grid_path + filename)
-    # pm.best_matched_view_analysis(view=grid_view)
+    pm.best_matched_view_analysis(view_x=610, view_y=610, save_data=True)
 
     # route_rIDF = pm.get_route_rIDF(grid_view)
     # print(f"View best matches to route idx: {pm.get_matched_route_view_idx(route_rIDF)}\n")

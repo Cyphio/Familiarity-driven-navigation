@@ -11,7 +11,7 @@ import itertools
 class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
-        plt.rcParams['figure.dpi'] = 1000
+        plt.rcParams['figure.dpi'] = 750
 
         self.route_name = route
         self.vis_deg = vis_deg
@@ -95,7 +95,6 @@ class AnalysisToolkit:
             quiver_map.append(line_map[matched_route_view_idx])
 
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
-        # fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
@@ -197,7 +196,8 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-    def best_matched_view_analysis(self, view, view_heading=0, save_data=False):
+    def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+        view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
         route_rIDF = self.get_route_rIDF(view, view_heading)
         rFF = self.get_rFF(route_rIDF)
 
@@ -218,10 +218,10 @@ class AnalysisToolkit:
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title("view, at rotation " + str(familiar_heading))
-        ax[0].imshow(cv2.cvtColor(rotated_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title("Best matched route view: " + matched_route_view_filename)
-        ax[1].imshow(cv2.cvtColor(matched_route_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[0].set_title(f"Given view at heading: {familiar_heading}, rotated: {familiar_heading - view_heading}")
+        ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title(f"Best matched route view: {matched_route_view_filename}")
+        ax[1].imshow(cv2.cvtColor(matched_route_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
@@ -230,11 +230,38 @@ class AnalysisToolkit:
         plt.show()
 
         plt.plot(*zip(*sorted(view_rIDF.items())))
-        plt.title("RIDF between view and best matched route view")
+        plt.title("rIDF between given view and " + matched_route_view_filename)
         plt.xlabel("Angle")
-        plt.ylabel("MSE of pixel intensities")
+        plt.ylabel("MSE in pixel intensities")
+        plt.ylim([0, max(view_rIDF.values())+10])
         if save_data:
             filename = "RIDF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
+        fig, ax = plt.subplots()
+        ax.imshow(self.topdown_view)
+
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / (len(self.route_filenames) - 1)) for i in range(len(self.route_filenames) - 1)]
+        ax.set_prop_cycle('color', line_map)
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
+        ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
+        ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
+
+        ax.quiver(view_x, view_y, np.sin(np.deg2rad(familiar_heading)), np.cos(np.deg2rad(familiar_heading)),
+                  color=line_map[matched_route_view_idx], width=0.007, headwidth=5)
+        ax.add_patch(plt.Circle((view_x, view_y), 15, color='deeppink', fill=False))
+        ax.plot(self.route_X[matched_route_view_idx], self.route_Y[matched_route_view_idx], markersize=10, color='deeppink', marker='*')
+
+        ax.set_xlim([self.bounds[0][0]-50, self.bounds[1][0]+50])
+        ax.set_ylim([self.bounds[0][1]-50, self.bounds[1][1]+50])
+        plt.gca().set_axis_off()
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                            hspace=0, wspace=0)
+
+        if save_data:
+            filename = "ENVIRONMENT"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
@@ -300,10 +327,6 @@ class AnalysisToolkit:
         ax.plot(610, 600, markersize=10, color='yellow', marker='*')
         ax.plot(620, 600, markersize=10, color='pink', marker='*')
         ax.plot(700, 600, markersize=10, color='lime', marker='*')
-        # ax.add_patch(plt.Circle((610, 600), 30, color='yellow', fill=False))
-        # ax.add_patch(plt.Circle((610, 600), 80, color='pink', fill=False))
-        # ax.add_patch(plt.Circle((610, 600), 150, color='blue', fill=False))
-        # ax.add_patch(plt.Circle((610, 600), 300, color='red', fill=False))
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
