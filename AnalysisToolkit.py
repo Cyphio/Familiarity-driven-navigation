@@ -1,4 +1,3 @@
-import math
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,11 +6,13 @@ import cv2
 from pyprobar import probar
 import datetime
 import csv
-from collections import defaultdict
+import itertools
 
 class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
+        plt.rcParams['figure.dpi'] = 750
+
         self.route_name = route
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -41,6 +42,11 @@ class AnalysisToolkit:
     def image_difference(self, minuend, subtrahend):
         return (minuend.astype("float") - subtrahend.astype("float")) ** 2
 
+    def get_real_heading(self, x, y):
+        coor = min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0]-x)**2 + (route_coor[1]-y)**2))
+        idx = list(zip(self.route_X, self.route_Y)).index(coor)
+        return self.route_headings[idx]
+
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
         time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
@@ -49,38 +55,46 @@ class AnalysisToolkit:
     def save_dict_as_CSV(self, data, path="", filename=""):
         time = datetime.datetime.now()
         time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
+        keys = data[0].keys()
         try:
-            with open(path + self.model_name + '/' + str(time) + '_' + filename + '.csv', 'w') as csvfile:
-                writer = csv.DictWriter(csvfile, fieldnames=data.keys())
-                writer.writeheader()
-                writer.writerow(data)
+            with open(path + self.model_name + '/' + str(time) + '_' + filename + '.csv', 'w', newline='') as csvfile:
+                dict_writer = csv.DictWriter(csvfile, keys)
+                dict_writer.writeheader()
+                dict_writer.writerows(data)
         except IOError:
             print("I/O error")
 
-    def database_analysis(self, spacing, bounds=None, save_data=False):
-        if bounds is not None:
-            self.bounds = bounds
+    def database_analysis(self, spacing, bounds=None, corridor=None, save_data=False):
+        if bounds is None:
+            bounds = self.bounds
 
-        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, spacing, dtype=int)
-        y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -spacing, dtype=int)
+        x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+
+        if corridor is not None:
+            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10))+1, spacing, dtype=int), itertools.repeat(y)))
+                                                               for x, y in zip([self.route_X[min(range(len(self.route_Y)), key=lambda i: abs(self.route_Y[i]-y))] for y in y_ticks], y_ticks)]))
+        else:
+            quiver_coors = [(x, y) for x in x_ticks for y in y_ticks]
+
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_X) - 1)) for i in range(len(self.route_X) - 1)]
         quiver_map = []
 
-        grid_view_familiarity = {}
-        for y in probar(y_ticks):
-            for x in x_ticks:
-                view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+        grid_view_familiarity = []
+        for x, y in probar(quiver_coors):
+            view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
 
-                route_rIDF = self.get_route_rIDF(view)
-                rFF = self.get_rFF(route_rIDF)
+            route_rIDF = self.get_route_rIDF(view)
+            rFF = self.get_rFF(route_rIDF)
+            familiar_heading = self.get_most_familiar_heading(rFF)
 
-                familiar_heading = self.get_most_familiar_heading(rFF)
-                grid_view_familiarity[str((x, y))] = familiar_heading
+            grid_view_familiarity.append({"X_COOR": x, "Y_COOR": y, "HEADING": familiar_heading})
 
-                matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
-                quiver_map.append(line_map[matched_route_view_idx])
-        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=spacing*10)
+            matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
+            quiver_map.append(line_map[matched_route_view_idx])
+
+        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
@@ -90,16 +104,16 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
-        X, Y = np.meshgrid(x_ticks, y_ticks)
-        u = [np.sin(np.deg2rad(n)) for n in grid_view_familiarity.values()]
-        v = [np.cos(np.deg2rad(n)) for n in grid_view_familiarity.values()]
+        X, Y = zip(*quiver_coors)
+        u = [np.sin(np.deg2rad(n["HEADING"])) for n in grid_view_familiarity]
+        v = [np.cos(np.deg2rad(n["HEADING"])) for n in grid_view_familiarity]
         ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
         ax.grid(which='major', axis='both', linestyle=':')
-        ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
-        ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+        ax.set_xlim([bounds[0][0], bounds[1][0]])
+        ax.set_ylim([bounds[0][1], bounds[1][1]])
         ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
 
@@ -107,6 +121,43 @@ class AnalysisToolkit:
             filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing)
             self.save_plot(plt, "DATABASE_ANALYSIS/", filename)
             self.save_dict_as_CSV(grid_view_familiarity, "DATABASE_ANALYSIS/", filename)
+        plt.show()
+
+    def avg_error(self, data_path):
+        data = csv.DictReader(open(data_path))
+        errors = []
+        for row in data:
+            real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
+            errors.append(abs(real_heading - int(row['HEADING'])))
+        return np.mean(errors)
+
+    def prcnt_correct(self, data_path, threshold):
+        data = csv.DictReader(open(data_path))
+        correct_count, total_count = 0, 0
+        for row in data:
+            real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
+            correct_count += int((real_heading - threshold) % self.vis_deg <= int(row['HEADING']) <= (real_heading + threshold) % self.vis_deg)
+            total_count += 1
+        return (correct_count/total_count)*100
+
+    def error_boxplot(self, data_1_path, data_2_path, save_data=False):
+        data_1 = csv.DictReader(open(data_1_path))
+        data_2 = csv.DictReader(open(data_2_path))
+        heading_errors_1 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_1]
+        heading_errors_2 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_2]
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        df = pd.DataFrame([heading_errors_1, heading_errors_2], index=["", ""])
+        df.T.boxplot(vert=False, flierprops=dict(markerfacecolor='r', marker='s'))
+        plt.title("Boxplot of errors in determined headings")
+        plt.xlabel("Heading error in degrees")
+        plt.xticks(rotation=90)
+        ax.xaxis.set_major_locator(plticker.MultipleLocator(10))
+        ax.xaxis.set_minor_locator(plticker.AutoMinorLocator())
+        plt.tight_layout()
+        if save_data:
+            filename = self.route_name + '_BOXPLOT'
+            self.save_plot(plt, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, view_2_heading=0, save_data=False):
@@ -145,7 +196,8 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-    def best_matched_view_analysis(self, view, view_heading=0, save_data=False):
+    def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+        view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
         route_rIDF = self.get_route_rIDF(view, view_heading)
         rFF = self.get_rFF(route_rIDF)
 
@@ -166,10 +218,10 @@ class AnalysisToolkit:
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title("view, at rotation " + str(familiar_heading))
-        ax[0].imshow(cv2.cvtColor(rotated_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title("Best matched route view: " + matched_route_view_filename)
-        ax[1].imshow(cv2.cvtColor(matched_route_view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[0].set_title(f"Given view at heading: {familiar_heading}, rotated: {familiar_heading - view_heading}")
+        ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title(f"Best matched route view: {matched_route_view_filename}")
+        ax[1].imshow(cv2.cvtColor(matched_route_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
@@ -178,11 +230,38 @@ class AnalysisToolkit:
         plt.show()
 
         plt.plot(*zip(*sorted(view_rIDF.items())))
-        plt.title("RIDF between view and best matched route view")
+        plt.title("rIDF between given view and " + matched_route_view_filename)
         plt.xlabel("Angle")
-        plt.ylabel("MSE of pixel intensities")
+        plt.ylabel("MSE in pixel intensities")
+        plt.ylim([0, max(view_rIDF.values())+10])
         if save_data:
             filename = "RIDF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
+        fig, ax = plt.subplots()mararenck
+        ax.imshow(self.topdown_view)
+
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / (len(self.route_filenames) - 1)) for i in range(len(self.route_filenames) - 1)]
+        ax.set_prop_cycle('color', line_map)
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
+        ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
+        ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
+
+        ax.quiver(view_x, view_y, np.sin(np.deg2rad(familiar_heading)), np.cos(np.deg2rad(familiar_heading)),
+                  color=line_map[matched_route_view_idx], width=0.007, headwidth=5)
+        ax.add_patch(plt.Circle((view_x, view_y), 15, color='deeppink', fill=False))
+        ax.plot(self.route_X[matched_route_view_idx], self.route_Y[matched_route_view_idx], markersize=10, color='deeppink', marker='*')
+
+        ax.set_xlim([self.bounds[0][0]-50, self.bounds[1][0]+50])
+        ax.set_ylim([self.bounds[0][1]-50, self.bounds[1][1]+50])
+        plt.gca().set_axis_off()
+        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
+                            hspace=0, wspace=0)
+
+        if save_data:
+            filename = "ENVIRONMENT"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
@@ -248,10 +327,6 @@ class AnalysisToolkit:
         ax.plot(610, 600, markersize=10, color='yellow', marker='*')
         ax.plot(620, 600, markersize=10, color='pink', marker='*')
         ax.plot(700, 600, markersize=10, color='lime', marker='*')
-        # ax.add_patch(plt.Circle((610, 600), 30, color='yellow', fill=False))
-        # ax.add_patch(plt.Circle((610, 600), 80, color='pink', fill=False))
-        # ax.add_patch(plt.Circle((610, 600), 150, color='blue', fill=False))
-        # ax.add_patch(plt.Circle((610, 600), 300, color='red', fill=False))
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
