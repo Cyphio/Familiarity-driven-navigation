@@ -239,7 +239,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots()mararenck
         ax.imshow(self.topdown_view)
 
         cm = plt.get_cmap('YlOrRd')
