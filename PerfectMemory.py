@@ -4,6 +4,7 @@ import cv2
 from collections import defaultdict
 import matplotlib.pyplot as plt
 
+
 class PerfectMemory(AnalysisToolkit):
 
     def __init__(self, route, vis_deg, rot_deg):
@@ -47,22 +48,26 @@ class PerfectMemory(AnalysisToolkit):
     def get_most_familiar_heading(self, rFF):
         return max(rFF, key=rFF.get)
 
+
 if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
-    # pm.database_analysis(spacing=30, save_data=False)
+    # pm.database_analysis(spacing=30, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_data=True)
     # data_1_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-6-49_ant1_route1_150x750_30.csv"
     # data_2_path = "DATABASE_ANALYSIS/PERFECTMEMORY/28-2-2021_15-45-13_ant1_route1_140x740_20.csv"
-    # pm.error_boxplot(data_1_path, data_2_path, save_data=True)
-
+    # data_3_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4-3-2021_1-55-53_ant1_route1_150x750_30.csv"
+    # pm.error_boxplot(data_2_path, data_1_path, save_data=True)
+    # print(f"FULL ENVIRO AVG: {pm.avg_error(data_1_path)}\nCORRIDOR AVG: {pm.avg_error(data_2_path)}\n")
+    # threshold = 20
+    # print(f"FULL ENVRO %: {pm.prcnt_correct(data_1_path, threshold)}\nCORRIDOR %: {pm.prcnt_correct(data_2_path, threshold)}")
     # Route view analysis
     # pm.route_analysis(step=100)
 
     # Off-route view analysis
-    # filename = pm.grid_filenames.get((500, 500))
+    # filename = pm.grid_filenames.get((610, 810))
     # grid_view = cv2.imread(pm.grid_path + filename)
     # pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
@@ -74,7 +79,10 @@ if __name__ == "__main__":
     # pm.view_analysis(view_1=grid_view, view_2=route_view, view_2_heading=route_view_heading, save_data=False)
 
     # Off-route best matched view analysis
-    pm.best_matched_view_analysis(view_x=610, view_y=610, save_data=True)
+    pm.best_matched_view_analysis(view_x=630, view_y=650, save_data=False)
+
+    # Off-route real match view analysis
+    # pm.real_match_view_analysis(view_x=630, view_y=650, save_data=False)
 
     # route_rIDF = pm.get_route_rIDF(grid_view)
     # print(f"View best matches to route idx: {pm.get_matched_route_view_idx(route_rIDF)}\n")
