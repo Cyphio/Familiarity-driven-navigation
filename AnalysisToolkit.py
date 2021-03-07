@@ -196,30 +196,30 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-    def real_match_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+    def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
 
-        real_route_virew_coor = min(zip(self.route_X, self.route_Y),key=lambda route_coor: ((route_coor[0] - view_x) ** 2 + (route_coor[1] - view_y) ** 2))
-        real_route_view_idx = list(zip(self.route_X, self.route_Y)).index(real_route_virew_coor)
-        real_route_view_filename = self.route_filenames[real_route_view_idx]
-        real_route_view_heading = self.route_headings[real_route_view_idx]
-        real_route_view = cv2.imread(self.route_path + real_route_view_filename)
-        real_route_view_downsampled = self.downsample(real_route_view)
+        ground_truth_view_coor = min(zip(self.route_X, self.route_Y),key=lambda route_coor: ((route_coor[0] - view_x) ** 2 + (route_coor[1] - view_y) ** 2))
+        ground_truth_view_idx = list(zip(self.route_X, self.route_Y)).index(ground_truth_view_coor)
+        ground_truth_view_filename = self.route_filenames[ground_truth_view_idx]
+        ground_truth_view_heading = self.route_headings[ground_truth_view_idx]
+        ground_truth_view = cv2.imread(self.route_path + ground_truth_view_filename)
+        ground_truth_view_downsampled = self.downsample(ground_truth_view)
 
-        rotated_view = np.roll(view, int(view.shape[1] * ((real_route_view_heading - view_heading) / self.vis_deg)), axis=1)
+        rotated_view = np.roll(view, int(view.shape[1] * ((ground_truth_view_heading - view_heading) / self.vis_deg)), axis=1)
         rotated_view_downsampled = self.downsample(rotated_view)
 
-        image_difference = self.image_difference(rotated_view_downsampled, real_route_view_downsampled)
-        view_rIDF = self.get_view_rIDF(rotated_view, real_route_view, real_route_view_heading)
+        image_difference = self.image_difference(rotated_view_downsampled, ground_truth_view_downsampled)
+        view_rIDF = self.get_view_rIDF(rotated_view, ground_truth_view, ground_truth_view_heading)
 
         plt.figure(dpi=750)
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"View at: ({view_x}, {view_y}) at heading: {real_route_view_heading}, rotated: {real_route_view_heading - view_heading}")
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at heading: {ground_truth_view_heading}, rotated: {ground_truth_view_heading - view_heading}")
         ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title(f"Real matched route view: {real_route_view_filename} at heading: {real_route_view_heading}")
-        ax[1].imshow(cv2.cvtColor(real_route_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title(f"Ground truth route view: {ground_truth_view_filename} at heading: {ground_truth_view_heading}")
+        ax[1].imshow(cv2.cvtColor(ground_truth_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
@@ -228,7 +228,7 @@ class AnalysisToolkit:
         plt.show()
 
         plt.plot(*zip(*sorted(view_rIDF.items())))
-        plt.title(f"rIDF between given view and {real_route_view_filename}\n"
+        plt.title(f"rIDF between given view and {ground_truth_view_filename}\n"
                   f"Confidence: {round(self.get_signal_strength(view_rIDF), 2)}, Minimum: {round(min(view_rIDF.values()), 2)}")
         plt.xlabel("Angle")
         plt.ylabel("MSE in pixel intensities")

@@ -3,6 +3,13 @@
   <component name="CsvFileAttributes">
     <option name="attributeMap">
       <map>
+        <entry key="\AnalysisToolkit.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\28-2-2021_15-45-13_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>

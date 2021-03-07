@@ -82,7 +82,7 @@ if __name__ == "__main__":
     pm.best_matched_view_analysis(view_x=630, view_y=650, save_data=False)
 
     # Off-route real match view analysis
-    # pm.real_match_view_analysis(view_x=630, view_y=650, save_data=False)
+    pm.ground_truth_view_analysis(view_x=630, view_y=650, save_data=False)
 
     # route_rIDF = pm.get_route_rIDF(grid_view)
     # print(f"View best matches to route idx: {pm.get_matched_route_view_idx(route_rIDF)}\n")
