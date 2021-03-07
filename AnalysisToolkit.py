@@ -11,8 +11,6 @@ import itertools
 class AnalysisToolkit:
 
     def __init__(self, route, vis_deg, rot_deg):
-        plt.rcParams['figure.dpi'] = 750
-
         self.route_name = route
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
@@ -50,7 +48,7 @@ class AnalysisToolkit:
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
         time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
-        plot.savefig(path + self.model_name + '/' + str(time) + '_' + filename + '.png', dpi=1000)
+        plot.savefig(path + self.model_name + '/' + str(time) + '_' + filename + '.png', dpi=750)
 
     def save_dict_as_CSV(self, data, path="", filename=""):
         time = datetime.datetime.now()
@@ -94,7 +92,7 @@ class AnalysisToolkit:
             matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
             quiver_map.append(line_map[matched_route_view_idx])
 
-        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
+        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=750)
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
@@ -145,12 +143,12 @@ class AnalysisToolkit:
         data_2 = csv.DictReader(open(data_2_path))
         heading_errors_1 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_1]
         heading_errors_2 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_2]
-        fig = plt.figure()
+        fig = plt.figure(dpi=750)
         ax = fig.add_subplot()
         df = pd.DataFrame([heading_errors_1, heading_errors_2], index=["", ""])
         df.T.boxplot(vert=False, flierprops=dict(markerfacecolor='r', marker='s'))
         plt.title("Boxplot of errors in determined headings")
-        plt.xlabel("Heading error in degrees")
+        plt.xlabel("Absolute heading error in degrees")
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(10))
         ax.xaxis.set_minor_locator(plticker.AutoMinorLocator())
@@ -172,12 +170,12 @@ class AnalysisToolkit:
 
         image_difference = self.image_difference(rotated_view_downsampled, view_2_downsampled)
 
-        plt.figure()
+        plt.figure(dpi=750)
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"view_2 at initial heading: {view_2_heading}")
-        ax[0].imshow(cv2.cvtColor(view_2_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[0].set_title(f"Given view at heading: {familiar_heading}, rotated: {familiar_heading - view_1_heading}")
+        ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[1].set_title(f"view_1 at heading: {familiar_heading}, rotated: {familiar_heading - view_1_heading}")
         ax[1].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
@@ -188,9 +186,53 @@ class AnalysisToolkit:
         plt.show()
 
         plt.plot(*zip(*sorted(rIDF.items())))
-        plt.title("RIDF")
+        plt.title(f"RIDF\n"
+                  f"Confidence: {round(self.get_signal_strength(rIDF), 2)}, Minimum: {round(min(rIDF.values()), 2)}")
         plt.xlabel("Angle")
         plt.ylabel("MSE of pixel intensities")
+        plt.ylim([500, max(rIDF.values()) + 10])
+        if save_data:
+            filename = "RIDF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
+    def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+        view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
+
+        ground_truth_view_coor = min(zip(self.route_X, self.route_Y),key=lambda route_coor: ((route_coor[0] - view_x) ** 2 + (route_coor[1] - view_y) ** 2))
+        ground_truth_view_idx = list(zip(self.route_X, self.route_Y)).index(ground_truth_view_coor)
+        ground_truth_view_filename = self.route_filenames[ground_truth_view_idx]
+        ground_truth_view_heading = self.route_headings[ground_truth_view_idx]
+        ground_truth_view = cv2.imread(self.route_path + ground_truth_view_filename)
+        ground_truth_view_downsampled = self.downsample(ground_truth_view)
+
+        rotated_view = np.roll(view, int(view.shape[1] * ((ground_truth_view_heading - view_heading) / self.vis_deg)), axis=1)
+        rotated_view_downsampled = self.downsample(rotated_view)
+
+        image_difference = self.image_difference(rotated_view_downsampled, ground_truth_view_downsampled)
+        view_rIDF = self.get_view_rIDF(rotated_view, ground_truth_view, ground_truth_view_heading)
+
+        plt.figure(dpi=750)
+        fig, ax = plt.subplots(3, 1)
+        fig.tight_layout(pad=2.0, w_pad=0)
+
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at heading: {ground_truth_view_heading}, rotated: {ground_truth_view_heading - view_heading}")
+        ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[1].set_title(f"Ground truth route view: {ground_truth_view_filename} at heading: {ground_truth_view_heading}")
+        ax[1].imshow(cv2.cvtColor(ground_truth_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        ax[2].set_title("Image difference")
+        ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        if save_data:
+            filename = "IMG_DIFF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
+        plt.plot(*zip(*sorted(view_rIDF.items())))
+        plt.title(f"rIDF between given view and {ground_truth_view_filename}\n"
+                  f"Confidence: {round(self.get_signal_strength(view_rIDF), 2)}, Minimum: {round(min(view_rIDF.values()), 2)}")
+        plt.xlabel("Angle")
+        plt.ylabel("MSE in pixel intensities")
+        plt.ylim(500, 1400)
         if save_data:
             filename = "RIDF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
@@ -205,6 +247,7 @@ class AnalysisToolkit:
 
         matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
+        matched_route_view_heading = self.route_headings[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)
         matched_route_view_downsampled = self.downsample(matched_route_view)
 
@@ -214,13 +257,13 @@ class AnalysisToolkit:
         image_difference = self.image_difference(rotated_view_downsampled, matched_route_view_downsampled)
         view_rIDF = self.get_view_rIDF(rotated_view, matched_route_view, familiar_heading)
 
-        plt.figure()
+        plt.figure(dpi=750)
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"Given view at heading: {familiar_heading}, rotated: {familiar_heading - view_heading}")
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at heading: {matched_route_view_heading}, rotated: {matched_route_view_heading - view_heading}")
         ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title(f"Best matched route view: {matched_route_view_filename}")
+        ax[1].set_title(f"Best matched route view: {matched_route_view_filename} at heading: {matched_route_view_heading}")
         ax[1].imshow(cv2.cvtColor(matched_route_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
@@ -230,35 +273,43 @@ class AnalysisToolkit:
         plt.show()
 
         plt.plot(*zip(*sorted(view_rIDF.items())))
-        plt.title("rIDF between given view and " + matched_route_view_filename)
+        plt.title(f"rIDF between given view and {matched_route_view_filename}\n"
+                  f"Confidence: {round(self.get_signal_strength(view_rIDF), 2)}, Minimum: {round(min(view_rIDF.values()), 2)}")
         plt.xlabel("Angle")
         plt.ylabel("MSE in pixel intensities")
-        plt.ylim([0, max(view_rIDF.values())+10])
+        plt.ylim(500, 1400)
         if save_data:
             filename = "RIDF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        fig, ax = plt.subplots()mararenck
+        x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, 20, dtype=int)
+        y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -20, dtype=int)
+
+        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
+        ax = fig.add_subplot()
+
         ax.imshow(self.topdown_view)
 
         cm = plt.get_cmap('YlOrRd')
         line_map = [cm(1. * i / (len(self.route_filenames) - 1)) for i in range(len(self.route_filenames) - 1)]
         ax.set_prop_cycle('color', line_map)
-        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=1) for i in range(len(line_map))]
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 10, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 10, color='red'))
 
         ax.quiver(view_x, view_y, np.sin(np.deg2rad(familiar_heading)), np.cos(np.deg2rad(familiar_heading)),
-                  color=line_map[matched_route_view_idx], width=0.007, headwidth=5)
-        ax.add_patch(plt.Circle((view_x, view_y), 15, color='deeppink', fill=False))
-        ax.plot(self.route_X[matched_route_view_idx], self.route_Y[matched_route_view_idx], markersize=10, color='deeppink', marker='*')
+                  color=line_map[matched_route_view_idx], scale_units='xy', scale=0.1, width=0.01, headwidth=5)
+        ax.add_patch(plt.Circle((view_x, view_y), 10, linewidth=3, color='cyan', fill=False))
+        ax.plot(self.route_X[matched_route_view_idx], self.route_Y[matched_route_view_idx], markersize=50, color='deeppink', marker='*')
 
-        ax.set_xlim([self.bounds[0][0]-50, self.bounds[1][0]+50])
-        ax.set_ylim([self.bounds[0][1]-50, self.bounds[1][1]+50])
-        plt.gca().set_axis_off()
-        plt.subplots_adjust(top=1, bottom=0, right=1, left=0,
-                            hspace=0, wspace=0)
+        ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
+        ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
+        ax.grid(which='major', axis='both', linestyle=':')
+        ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
+        ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
+        ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
 
         if save_data:
             filename = "ENVIRONMENT"
@@ -330,8 +381,6 @@ class AnalysisToolkit:
 
         ax.set_xlim([self.bounds[0][0], self.bounds[1][0]])
         ax.set_ylim([self.bounds[0][1], self.bounds[1][1]])
-        # ax.set_xlim([600, 710])
-        # ax.set_ylim([590, 610])
 
         filename = "ZOOMEDOUT"
         self.save_plot(plt, "MISC/", filename)
