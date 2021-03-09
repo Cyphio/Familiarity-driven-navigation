@@ -138,14 +138,14 @@ class AnalysisToolkit:
             total_count += 1
         return (correct_count/total_count)*100
 
-    def error_boxplot(self, data_1_path, data_2_path, save_data=False):
-        data_1 = csv.DictReader(open(data_1_path))
-        data_2 = csv.DictReader(open(data_2_path))
-        heading_errors_1 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_1]
-        heading_errors_2 = [abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data_2]
+    def error_boxplot(self, data_paths, save_data=False):
+        heading_errors = []
+        for data_path in data_paths:
+            data = csv.DictReader(open(data_path))
+            heading_errors.append([abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data])
         fig = plt.figure(dpi=750)
         ax = fig.add_subplot()
-        df = pd.DataFrame([heading_errors_1, heading_errors_2], index=["", ""])
+        df = pd.DataFrame(heading_errors, index=[""]*len(data_paths))
         df.T.boxplot(vert=False, flierprops=dict(markerfacecolor='r', marker='s'))
         plt.title("Boxplot of errors in determined headings")
         plt.xlabel("Absolute heading error in degrees")
@@ -186,11 +186,11 @@ class AnalysisToolkit:
         plt.show()
 
         plt.plot(*zip(*sorted(rIDF.items())))
-        plt.title(f"RIDF\n"
+        plt.title(f"rIDF\n"
                   f"Confidence: {round(self.get_signal_strength(rIDF), 2)}, Minimum: {round(min(rIDF.values()), 2)}")
         plt.xlabel("Angle")
         plt.ylabel("MSE of pixel intensities")
-        plt.ylim([500, max(rIDF.values()) + 10])
+        plt.ylim([500, 1400])
         if save_data:
             filename = "RIDF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
@@ -300,7 +300,9 @@ class AnalysisToolkit:
 
         ax.quiver(view_x, view_y, np.sin(np.deg2rad(familiar_heading)), np.cos(np.deg2rad(familiar_heading)),
                   color=line_map[matched_route_view_idx], scale_units='xy', scale=0.1, width=0.01, headwidth=5)
+        ground_truth_view_coor = min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0] - view_x) ** 2 + (route_coor[1] - view_y) ** 2))
         ax.add_patch(plt.Circle((view_x, view_y), 10, linewidth=3, color='cyan', fill=False))
+        ax.plot(ground_truth_view_coor[0], ground_truth_view_coor[1], markersize=50, color='lime', marker='*')
         ax.plot(self.route_X[matched_route_view_idx], self.route_Y[matched_route_view_idx], markersize=50, color='deeppink', marker='*')
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))

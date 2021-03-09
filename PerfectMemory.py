@@ -2,8 +2,6 @@ from AnalysisToolkit import AnalysisToolkit
 import numpy as np
 import cv2
 from collections import defaultdict
-import matplotlib.pyplot as plt
-
 
 class PerfectMemory(AnalysisToolkit):
 
@@ -56,13 +54,14 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=30, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_data=True)
-    # data_1_path = "DATABASE_ANALYSIS/PERFECTMEMORY/27-2-2021_18-6-49_ant1_route1_150x750_30.csv"
-    # data_2_path = "DATABASE_ANALYSIS/PERFECTMEMORY/28-2-2021_15-45-13_ant1_route1_140x740_20.csv"
-    # data_3_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4-3-2021_1-55-53_ant1_route1_150x750_30.csv"
-    # pm.error_boxplot(data_2_path, data_1_path, save_data=True)
-    # print(f"FULL ENVIRO AVG: {pm.avg_error(data_1_path)}\nCORRIDOR AVG: {pm.avg_error(data_2_path)}\n")
+    # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/9-3-2021_12-13-22_ant1_route1_140x740_20.csv"
+    # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/9-3-2021_11-19-55_ant1_route1_140x740_20.csv"
+    # four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/28-2-2021_15-45-13_ant1_route1_140x740_20.csv"
+    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/9-3-2021_10-45-18_ant1_route1_140x740_20.csv"
+    # pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path], save_data=True)
     # threshold = 20
-    # print(f"FULL ENVRO %: {pm.prcnt_correct(data_1_path, threshold)}\nCORRIDOR %: {pm.prcnt_correct(data_2_path, threshold)}")
+    # print(f"AVG error: {pm.avg_error(data_path)}\n% correct: {pm.prcnt_correct(data_path, threshold)}")
+
     # Route view analysis
     # pm.route_analysis(step=100)
 
@@ -79,73 +78,7 @@ if __name__ == "__main__":
     # pm.view_analysis(view_1=grid_view, view_2=route_view, view_2_heading=route_view_heading, save_data=False)
 
     # Off-route best matched view analysis
-    pm.best_matched_view_analysis(view_x=630, view_y=650, save_data=False)
+    # pm.best_matched_view_analysis(view_x=610, view_y=810, save_data=True)
 
     # Off-route real match view analysis
-    pm.ground_truth_view_analysis(view_x=630, view_y=650, save_data=False)
-
-    # route_rIDF = pm.get_route_rIDF(grid_view)
-    # print(f"View best matches to route idx: {pm.get_matched_route_view_idx(route_rIDF)}\n")
-    #
-    # familiarity_dict = pm.get_view_familiarity(route_rIDF)
-    # print(f"Signal strength: {pm.get_signal_strength(familiarity_dict)}\n")
-    # print(f"Most familiar heading: {pm.get_most_familiar_heading(familiarity_dict)}\n")
-
-    # pm.fig_generator()
-    #
-    # # 610.001, 600.01
-    # yellow = cv2.imread(pm.route_path + pm.route_filenames[263])
-    # yellow_heading = pm.route_headings[263]
-    # rIDF = pm.get_view_rIDF(yellow, yellow, yellow_heading)
-    # plt.plot(*zip(*sorted(rIDF.items())))
-    # plt.title("rIDF between view at yellow star and itself\n"
-    #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
-    # plt.xlabel("Angle")
-    # plt.ylabel("MSE in pixel intensities")
-    # plt.ylim([400, 1100])
-    # filename = "YELLOW_RIDF"
-    # pm.save_plot(plt, "MISC/", filename)
-    # plt.show()
-    #
-    # pink = cv2.imread(pm.grid_path + pm.grid_filenames.get((620, 600)))
-    # rIDF = pm.get_view_rIDF(pink, yellow)
-    # plt.plot(*zip(*sorted(rIDF.items())))
-    # plt.title("rIDF between view at pink star and view at yellow star\n"
-    #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
-    # plt.xlabel("Angle")
-    # plt.ylabel("MSE in pixel intensities")
-    # plt.ylim([400, 1100])
-    # filename = "PINK_RIDF"
-    # pm.save_plot(plt, "MISC/", filename)
-    # plt.show()
-    #
-    # green = cv2.imread(pm.grid_path + pm.grid_filenames.get((700, 600)))
-    # rIDF = pm.get_view_rIDF(green, yellow)
-    # plt.plot(*zip(*sorted(rIDF.items())))
-    # plt.title("rIDF between view at green star and view at yellow star\n"
-    #           "Confidence: " + str(pm.get_signal_strength(rIDF)))
-    # plt.xlabel("Angle")
-    # plt.ylabel("MSE in pixel intensities")
-    # plt.ylim([400, 1100])
-    # filename = "GREEN_RIDF"
-    # pm.save_plot(plt, "MISC/", filename)
-    # plt.show()
-
-    # on_route = cv2.imread(pm.route_path + pm.route_filenames[263])
-    # data = {}
-    # # data[0] = pm.get_signal_strength(pm.get_view_rIDF(on_route, on_route))
-    # for x in np.arange(620, 900, step=10, dtype=int):
-    #     print(x)
-    #     off_route = cv2.imread(pm.grid_path + pm.grid_filenames.get((x, 600)))
-    #     data[x-610] = pm.get_signal_strength(pm.get_view_rIDF(off_route, on_route))
-    #
-    # plt.plot(*zip(*sorted(data.items(), reverse=True)))
-    # plt.title("Signal strength over distance")
-    # plt.xlabel("X-axis displacement from yellow star (cm)")
-    # plt.ylabel("Signal strength")
-    # plt.tight_layout()
-    #
-    # # filename = "GRAPH"
-    # # pm.save_plot(plt, "MISC/", filename)
-    #
-    # plt.show()
+    # pm.ground_truth_view_analysis(view_x=630, view_y=650, save_data=False)
