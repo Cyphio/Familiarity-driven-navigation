@@ -40,10 +40,11 @@ class AnalysisToolkit:
     def image_difference(self, minuend, subtrahend):
         return abs(minuend.astype("float") - subtrahend.astype("float"))
 
-    def get_real_heading(self, x, y):
-        coor = min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0]-x)**2 + (route_coor[1]-y)**2))
-        idx = list(zip(self.route_X, self.route_Y)).index(coor)
-        return self.route_headings[idx]
+    def get_ground_truth_coor(self, x, y):
+        return min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0] - x) ** 2 + (route_coor[1] - y) ** 2))
+
+    def get_ground_truth_heading(self, x, y):
+        return self.route_headings[list(zip(self.route_X, self.route_Y)).index(self.get_ground_truth_coor(x, y))]
 
     def save_plot(self, plot, path="", filename=""):
         time = datetime.datetime.now()
@@ -121,30 +122,47 @@ class AnalysisToolkit:
             self.save_dict_as_CSV(data, "DATABASE_ANALYSIS/", filename)
         plt.show()
 
-    def avg_error(self, data_path):
+    def avg_absolute_error(self, data_path):
         data = csv.DictReader(open(data_path))
         errors = []
         for row in data:
-            real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
+            real_heading = self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR']))
             errors.append(abs(real_heading - int(row['HEADING'])))
         return float(np.mean(errors))
 
-    def prcnt_correct(self, data_path, threshold):
+    def directionally_correct(self, data_path):
+        threshold = 20
         data = csv.DictReader(open(data_path))
         correct_count, total_count = 0, 0
         for row in data:
-            real_heading = self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR']))
+            real_heading = self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR']))
             correct_count += int((real_heading - threshold) % self.vis_deg <= int(row['HEADING']) <= (real_heading + threshold) % self.vis_deg)
             total_count += 1
         return (correct_count/total_count)*100
 
-    def error_boxplot(self, data_paths, save_data=False):
+    def locationally_correct(self, data_path):
+        threshold = 75
+        data = csv.DictReader(open(data_path))
+        correct_count, total_count = 0, 0
+        for row in data:
+            ground_truth_view_coor = self.get_ground_truth_coor(int(row['X_COOR']), int(row['Y_COOR']))
+            matched_route_view_coor = list(zip(self.route_X, self.route_Y))[int(row['MATCHED_ROUTE_VIEW_IDX'])]
+            correct_count += int((np.sqrt((np.square(ground_truth_view_coor[0] - matched_route_view_coor[0])) +
+                                          (np.square(ground_truth_view_coor[1] - matched_route_view_coor[1])))) <= threshold)
+
+            total_count += 1
+        return (correct_count/total_count)*100
+
+    def error_boxplot(self, data_paths, index_titles=None, save_data=False):
         heading_errors = []
         indexes = []
-        for data_path in data_paths:
+        for idx, data_path in enumerate(data_paths):
             data = csv.DictReader(open(data_path))
-            heading_errors.append([abs(self.get_real_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data])
-            indexes.append(f"AVG ERROR: {round(self.avg_error(data_path), 2)}\nCORRECT: {round(self.prcnt_correct(data_path, 20), 2)}%")
+            heading_errors.append([abs(self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data])
+            if index_titles is not None:
+                indexes.append(f"{index_titles[idx]}\nAVG ERROR: {round(self.avg_absolute_error(data_path), 2)}\nCORRECT: {round(self.directionally_correct(data_path, 20), 2)}%")
+            else:
+                indexes.append(f"AVG ERROR: {round(self.avg_absolute_error(data_path), 2)}\nCORRECT: {round(self.directionally_correct(data_path, 20), 2)}%")
         fig = plt.figure(dpi=750)
         ax = fig.add_subplot()
         df = pd.DataFrame(heading_errors, indexes)
@@ -205,7 +223,7 @@ class AnalysisToolkit:
     def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
 
-        ground_truth_view_coor = min(zip(self.route_X, self.route_Y),key=lambda route_coor: ((route_coor[0] - view_x) ** 2 + (route_coor[1] - view_y) ** 2))
+        ground_truth_view_coor = self.get_ground_truth_coor(view_x, view_y)
         ground_truth_view_idx = list(zip(self.route_X, self.route_Y)).index(ground_truth_view_coor)
         ground_truth_view_filename = self.route_filenames[ground_truth_view_idx]
         ground_truth_view_heading = self.route_headings[ground_truth_view_idx]
@@ -317,7 +335,7 @@ class AnalysisToolkit:
 
         ax.quiver(view_x, view_y, np.sin(np.deg2rad(familiar_heading)), np.cos(np.deg2rad(familiar_heading)),
                   color=line_map[matched_route_view_idx], scale_units='xy', scale=0.1, width=0.01, headwidth=5)
-        ground_truth_view_coor = min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0] - view_x) ** 2 + (route_coor[1] - view_y) ** 2))
+        ground_truth_view_coor = self.get_ground_truth_coor(view_x, view_y)
         ax.add_patch(plt.Circle((view_x, view_y), 10, linewidth=3, color='cyan', fill=False))
         ax.plot(ground_truth_view_coor[0], ground_truth_view_coor[1], markersize=50, color='lime', marker='*')
         ax.plot(self.route_X[matched_route_view_idx], self.route_Y[matched_route_view_idx], markersize=50, color='deeppink', marker='*')
