@@ -12,8 +12,8 @@ class PerfectMemory(AnalysisToolkit):
 
     # Rotational Image Difference Function for two views
     def get_view_rIDF(self, view_1, view_2, view_1_heading=0):
-        view_1_downsampled = self.downsample(view_1)
-        view_2_downsampled = self.downsample(view_2)
+        view_1_downsampled = self.preprocess(view_1)
+        view_2_downsampled = self.preprocess(view_2)
         view_rIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             view_1_rotated = np.roll(view_1_downsampled, int(view_1_downsampled.shape[1] * (i / self.vis_deg)), axis=1)
@@ -52,18 +52,21 @@ if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
 
     # Database analysis
-    # pm.database_analysis(spacing=30, save_data=True)
+    # pm.database_analysis(spacing=20, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_data=True)
-    # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/10-3-2021_10-18-41_ant1_route1_140x740_20.csv"
-    # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/10-3-2021_0-14-54_ant1_route1_140x740_20.csv"
-    # four_px_corridor_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/9-3-2021_22-45-20_ant1_route1_140x740_20.csv"
-    # four_px_enviro_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/10-3-2021_11-7-4_ant1_route1_150x750_30.csv"
-    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/9-3-2021_22-26-6_ant1_route1_140x740_20.csv"
-    # sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/16_deg_px_res/9-3-2021_22-0-47_ant1_route1_140x740_20.csv"
-    # pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path, sixteen_px_data_path], save_data=False)
-    # pm.error_boxplot(data_paths=[four_px_enviro_data_path, four_px_corridor_data_path], index_titles=["Across environment", "Within route corridor"], save_data=True)
-    print(pm.locationally_correct(four_px_enviro_data_path))
+    one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
+    two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
+    four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
+    eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
+    sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv"
+    pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path, sixteen_px_data_path],
+                     ["1 degree resolution", "2 degree resolution", "4 degree resolution", "8 degree resolution", "16 degree resolution"],
+                     save_data=True)
+    four_px_enviro_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/15-3-2021_22-1-36_ant1_route1_140x740_20.csv"
+    pm.error_boxplot([four_px_data_path, four_px_enviro_data_path],
+                     ["Within route corridor", "Across environment"],
+                     save_data=True)
 
     # Route view analysis
     # pm.route_analysis(step=100)

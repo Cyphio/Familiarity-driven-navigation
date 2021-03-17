@@ -33,9 +33,9 @@ class AnalysisToolkit:
         self.bounds = [[int((np.floor((min(self.route_X) / 10)) * 10)), int((np.floor((min(self.route_Y) / 10)) * 10))],
                         [int((np.ceil((max(self.route_X) / 10)) * 10)), int((np.ceil((max(self.route_Y) / 10)) * 10))]]
 
-    def downsample(self, view):
+    def preprocess(self, view):
         view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
-        return cv2.resize(view, (90, 17))
+        return cv2.resize(view, (360, 68))
 
     def image_difference(self, minuend, subtrahend):
         return abs(minuend.astype("float") - subtrahend.astype("float"))
@@ -160,14 +160,19 @@ class AnalysisToolkit:
             data = csv.DictReader(open(data_path))
             heading_errors.append([abs(self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data])
             if index_titles is not None:
-                indexes.append(f"{index_titles[idx]}\nAVG ERROR: {round(self.avg_absolute_error(data_path), 2)}\nCORRECT: {round(self.directionally_correct(data_path, 20), 2)}%")
+                indexes.append(f"{index_titles[idx]}\n"
+                               f"AVG DIRECTIONAL ERROR: {round(self.avg_absolute_error(data_path), 2)}\n"
+                               f"DIRECTIONALLY CORRECT: {round(self.directionally_correct(data_path), 2)}%\n"
+                               f"LOCATIONALLY CORRECT: {round(self.locationally_correct(data_path), 2)}%")
             else:
-                indexes.append(f"AVG ERROR: {round(self.avg_absolute_error(data_path), 2)}\nCORRECT: {round(self.directionally_correct(data_path, 20), 2)}%")
+                indexes.append(f"AVG DIRECTIONAL ERROR: {round(self.avg_absolute_error(data_path), 2)}\n"
+                               f"DIRECTIONALLY CORRECT: {round(self.directionally_correct(data_path), 2)}%\n"
+                               f"LOCATIONALLY CORRECT: {round(self.locationally_correct(data_path), 2)}%")
         fig = plt.figure(dpi=750)
         ax = fig.add_subplot()
         df = pd.DataFrame(heading_errors, indexes)
         df.T.boxplot(vert=False, flierprops=dict(markerfacecolor='r', marker='s'))
-        plt.title("Boxplot of errors in determined headings")
+        plt.title("Boxplot of directional errors in headings")
         plt.xlabel("Absolute heading error in degrees")
         plt.xticks(rotation=90)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(10))
@@ -185,8 +190,8 @@ class AnalysisToolkit:
 
         rotated_view = np.roll(view_1, int(view_1.shape[1] * ((familiar_heading - view_1_heading) / self.vis_deg)), axis=1)
 
-        rotated_view_downsampled = self.downsample(rotated_view)
-        view_2_downsampled = self.downsample(view_2)
+        rotated_view_downsampled = self.preprocess(rotated_view)
+        view_2_downsampled = self.preprocess(view_2)
 
         image_difference = self.image_difference(rotated_view_downsampled, view_2_downsampled)
 
@@ -234,8 +239,8 @@ class AnalysisToolkit:
 
         rotated_view = np.roll(view, int(view.shape[1] * ((familiar_heading - view_heading) / self.vis_deg)), axis=1)
 
-        rotated_view_downsampled = self.downsample(rotated_view)
-        ground_truth_view_downsampled = self.downsample(ground_truth_view)
+        rotated_view_downsampled = self.preprocess(rotated_view)
+        ground_truth_view_downsampled = self.preprocess(ground_truth_view)
 
         image_difference = self.image_difference(rotated_view_downsampled, ground_truth_view_downsampled)
 
@@ -280,10 +285,10 @@ class AnalysisToolkit:
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
         matched_route_view_heading = self.route_headings[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)
-        matched_route_view_downsampled = self.downsample(matched_route_view)
+        matched_route_view_downsampled = self.preprocess(matched_route_view)
 
         rotated_view = np.roll(view, int(view.shape[1] * ((familiar_heading - view_heading) / self.vis_deg)), axis=1)
-        rotated_view_downsampled = self.downsample(rotated_view)
+        rotated_view_downsampled = self.preprocess(rotated_view)
 
         image_difference = self.image_difference(rotated_view_downsampled, matched_route_view_downsampled)
         view_rIDF = self.get_view_rIDF(rotated_view, matched_route_view, familiar_heading)
