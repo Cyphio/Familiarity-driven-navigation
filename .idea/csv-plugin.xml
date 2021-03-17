@@ -17,7 +17,21 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\4_deg_px_res\10-3-2021_11-7-4_ant1_route1_150x750_30.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\PerfectMemory.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\ant_world_image_databases\routes\ant1_route1\database_entries.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
