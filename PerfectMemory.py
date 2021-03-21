@@ -16,7 +16,7 @@ class PerfectMemory(AnalysisToolkit):
         view_2_downsampled = self.preprocess(view_2)
         view_rIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-            view_1_rotated = np.roll(view_1_downsampled, int(view_1_downsampled.shape[1] * (i / self.vis_deg)), axis=1)
+            view_1_rotated = self.rotate(view_1_downsampled, i)
             mse = np.sum(self.image_difference(view_1_rotated, view_2_downsampled)**2)
             mse /= float(view_1_downsampled.shape[0] * view_1_downsampled.shape[1])
             view_rIDF[(i + view_1_heading) % self.vis_deg] = mse
