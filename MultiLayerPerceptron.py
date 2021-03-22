@@ -6,17 +6,22 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import torch
+from torch.utils import data
 import torch.nn as nn
 import torch.optim as optim
+from torchvision import datasets, transforms
 from sklearn.model_selection import train_test_split
 
 class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
 
     def __init__(self, route, vis_deg, rot_deg):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
+        nn.Module.__init__(self)
         self.model_name = 'MLP'
 
         self.X_train, self.X_test, self.y_train, self.y_test = self.data_loader(angle=60, test_size=0.33)
+        print(f"TRAIN X: {type(self.X_train)}")
+        print(f"TRAIN Y: {type(self.y_train)}")
 
         # MLP hyper-parameters
         self.INPUT_SIZE = 360
@@ -26,31 +31,34 @@ class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
         self.LEARNING_RATE = 0.001
         self.MOMENTUM = 0.9
 
-        # MLP loss and optimizer
-        self.criterion = nn.BCELoss()
-        self.optimizer = optim.SGD(self.parameters(), lr=self.LEARNING_RATE, momentum=self.MOMENTUM)
-
         # MLP layers
         self.fc_input = nn.Linear(self.INPUT_SIZE, self.HIDDEN_SIZE)
-        self.fc_hidden = nn.Linear(self.HIDDEN_LAYER_SIZE, self.HIDDEN_LAYER_SIZE)
-        self.fc_output = nn.Linear(self.HIDDEN_LAYER_SIZE, 1)
+        self.fc_hidden = nn.Linear(self.HIDDEN_SIZE, self.HIDDEN_SIZE)
+        self.fc_output = nn.Linear(self.HIDDEN_SIZE, 1)
 
         # MLP activations
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
+        # MLP loss and optimizer
+        self.criterion = nn.BCELoss()
+        params = list(self.fc_input.parameters()) + list(self.fc_hidden.parameters()) + list(self.fc_output.parameters())
+        self.optimizer = optim.SGD(params=params, lr=self.LEARNING_RATE, momentum=self.MOMENTUM)
+
     def data_loader(self, angle, test_size):
         print('Generating training data...')
-        dp = []
+        dp = np.array(len(self.route_filenames))
         for filename in probar(self.route_filenames):
             view = self.preprocess(cv2.imread(self.route_path + filename))
-            dp.append([view, 1])
-            dp.append([self.rotate(view, angle), 0])
-            dp.append([self.rotate(view, -angle), 0])
-        df = pd.DataFrame(dp, columns=["VIEW", "LABEL"])
+            np.append(dp, [torch.from_numpy(view), 1])
+            np.append(dp, [torch.from_numpy(self.rotate(view, angle)), 0])
+            np.append(dp, [torch.from_numpy(self.rotate(view, -angle)), 0])
+        df = pd.DataFrame(dp, columns=['VIEW', 'LABEL'])
         # sns.countplot(x='LABEL', data=df)
         # plt.show()
-        return train_test_split(df.iloc[:, 0:-1], df.iloc[:, -1], test_size=test_size, random_state=0)
+        # return train_test_split(df[:, 0:-1], df[:, -1], test_size=test_size, random_state=0)
+        return train_test_split(torch.from_numpy(df['VIEW'].values), torch.from_numpy(df['LABEL'].values), test_size=test_size, random_state=0, shuffle=True)
+        # return train_test_split(torch.Tensor(views), torch.Tensor(labels), test_size=test_size, random_state=0)
 
     def forward(self, input):
         fc_input = self.fc_input(input)
@@ -82,4 +90,4 @@ class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2)
-    print(mlp.X_train['VIEW'][0].shape)
+    mlp.train_model()
