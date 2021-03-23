@@ -13,16 +13,18 @@ from torchvision import datasets, transforms
 from torch.utils.data import Subset
 from sklearn.model_selection import train_test_split
 
-class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
+class MultiLayerPerceptron(AnalysisToolkit):
 
     def __init__(self, route, vis_deg, rot_deg):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
-        nn.Module.__init__(self)
         self.model_name = 'MLP'
 
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        print(f"RUNNING ON: {self.device}")
+
         # MLP hyper-parameters
-        self.INPUT_SIZE = 45
-        self.HIDDEN_SIZE = 1536
+        self.INPUT_SIZE = 360
+        self.HIDDEN_SIZE = 45
         self.TEST_SIZE = 0.33
         self.EPOCHS = 50
         self.BATCH_SIZE = 64
@@ -34,22 +36,8 @@ class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
 
         # Data loading
         dataloaders = self.get_dataloaders("ANN_DATA/60")
-        self.X_train, self.y_train = next(iter(dataloaders['TRAIN']))
-        self.X_test, self.y_test = next(iter(dataloaders['TEST']))
-
-        # MLP layers
-        self.fc_input = nn.Linear(self.INPUT_SIZE, self.HIDDEN_SIZE)
-        self.fc_hidden = nn.Linear(self.HIDDEN_SIZE, self.HIDDEN_SIZE)
-        self.fc_output = nn.Linear(self.HIDDEN_SIZE, 1)
-
-        # MLP activations
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
-
-        # MLP loss and optimizer
-        self.criterion = nn.BCELoss()
-        params = list(self.fc_input.parameters()) + list(self.fc_hidden.parameters()) + list(self.fc_output.parameters())
-        self.optimizer = optim.SGD(params=params, lr=self.LEARNING_RATE, momentum=self.MOMENTUM)
+        self.trainloader = dataloaders['TRAIN']
+        self.testloader = dataloaders['TEST']
 
     def gen_data(self, angle):
         print('Generating data...')
@@ -64,12 +52,66 @@ class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
             plt.imsave(f"./ANN_DATA/{angle}/{label}/{filename}.png", cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     def get_dataloaders(self, path):
-        transform = transforms.Compose([transforms.ToTensor()])
+        transform = transforms.Compose([transforms.Grayscale(num_output_channels=1),
+                                        transforms.ToTensor()])
         dataset = datasets.ImageFolder(path, transform=transform)
         train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=self.TEST_SIZE, random_state=0)
         dataset_dict = {"TRAIN": Subset(dataset, train_idx), "TEST": Subset(dataset, test_idx)}
         return {tag: torch.utils.data.DataLoader(dataset_dict[tag], batch_size=self.BATCH_SIZE, shuffle=True)
                 for tag in ["TRAIN", "TEST"]}
+
+    def train_model(self):
+        model = Model(self.INPUT_SIZE, self.HIDDEN_SIZE)
+        model.to(self.device)
+        criterion = nn.BCELoss()
+        optimizer = optim.SGD(params=model.parameters(), lr=self.LEARNING_RATE, momentum=self.MOMENTUM)
+
+        # self.eval()
+        # y_pred = self.forward(self.X_test)
+        # before_train = self.criterion(y_pred.squeeze(), self.y_test)
+        # print(f"Test loss before training: {before_train.item()}")
+
+        # for epoch in range(self.EPOCHS):
+        #     for X_train, y_train in self.train_generator:
+        #         self.optimizer.zero_grad()
+        #         y_pred = self.forward(X_train)
+        #         loss = self.criterion(y_pred.squeeze(), y_train)
+        #         print(f"Epoch: {epoch}, Loss: {loss}" )
+        #         loss.backward()
+        #         self.optimizer.step()
+        for epoch in range(self.EPOCHS):  # loop over the dataset multiple times
+            running_loss = 0.0
+            for idx, (X_train, y_train) in enumerate(self.trainloader, 0):
+                X_train, y_train = X_train.to(self.device), y_train.to(self.device)
+                # zero the parameter gradients
+                optimizer.zero_grad()
+                # forward + backward + optimize
+                y_pred = model(X_train.view(self.BATCH_SIZE, -1))
+                print(f"Y_PRED TYPE: {y_pred.squeeze()}\nY_TRAIN TYPE: {y_train}")
+                loss = criterion(y_pred.squeeze(), y_train)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+
+        print('Finished Training')
+
+        # self.eval()
+        # y_pred = self.forward(self.X_test)
+        # after_train = self.criterion(y_pred.squeeze(), self.y_test)
+        # print(f"Test loss after training: {after_train.item()}")
+
+class Model(nn.Module):
+    def __init__(self, INPUT_SIZE, HIDDEN_SIZE):
+        nn.Module.__init__(self)
+
+        # Model layers
+        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZE)
+        self.fc_hidden = nn.Linear(HIDDEN_SIZE, HIDDEN_SIZE)
+        self.fc_output = nn.Linear(HIDDEN_SIZE, 1)
+
+        # Model activations
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, input):
         fc_input = self.fc_input(input)
@@ -78,26 +120,6 @@ class MultiLayerPerceptron(AnalysisToolkit, nn.Module):
         relu = self.relu(fc_hidden)
         fc_output = self.fc_output(relu)
         return self.sigmoid(fc_output)
-
-    def train_model(self):
-        self.eval()
-        y_pred = self.forward(self.X_test)
-        before_train = self.criterion(y_pred.squeeze(), self.y_test)
-        print(f"Test loss before training: {before_train.item()}")
-
-        self.train()
-        for epoch in range(self.EPOCHS):
-            self.optimizer.zero_grad()
-            y_pred = self.forward(self.X_train)
-            loss = self.criterion(y_pred.squeeze(), self.y_train)
-            print(f"Epoch: {epoch}, Loss: {loss}" )
-            loss.backward()
-            self.optimizer.step()
-
-        self.eval()
-        y_pred = self.forward(self.X_test)
-        after_train = self.criterion(y_pred.squeeze(), self.y_test)
-        print(f"Test loss after training: {after_train.item()}")
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2)
