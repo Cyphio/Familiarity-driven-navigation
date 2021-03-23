@@ -3,7 +3,6 @@ from pyprobar import probar
 import cv2
 import numpy as np
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 import torch
 from torch.utils import data
@@ -24,10 +23,10 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
         # MLP hyper-parameters
         self.INPUT_SIZE = 360
-        self.HIDDEN_SIZE = 45
+        self.HIDDEN_SIZE = 360
         self.TEST_SIZE = 0.33
-        self.EPOCHS = 50
-        self.BATCH_SIZE = 64
+        self.EPOCHS = 5
+        self.BATCH_SIZE = 32
         self.LEARNING_RATE = 0.001
         self.MOMENTUM = 0.9
 
@@ -51,13 +50,19 @@ class MultiLayerPerceptron(AnalysisToolkit):
         for filename, view, label in df.values:
             plt.imsave(f"./ANN_DATA/{angle}/{label}/{filename}.png", cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
+    def binary_acc(self, y_pred, y_test):
+        y_pred_tag = torch.round(torch.sigmoid(y_pred))
+        correct_results_sum = (y_pred_tag == y_test).sum().float()
+        acc = correct_results_sum / y_test.shape[0]
+        return torch.round(acc * 100)
+
     def get_dataloaders(self, path):
         transform = transforms.Compose([transforms.Grayscale(num_output_channels=1),
                                         transforms.ToTensor()])
         dataset = datasets.ImageFolder(path, transform=transform)
         train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=self.TEST_SIZE, random_state=0)
         dataset_dict = {"TRAIN": Subset(dataset, train_idx), "TEST": Subset(dataset, test_idx)}
-        return {tag: torch.utils.data.DataLoader(dataset_dict[tag], batch_size=self.BATCH_SIZE, shuffle=True)
+        return {tag: torch.utils.data.DataLoader(dataset_dict[tag], batch_size=self.BATCH_SIZE, shuffle=False)
                 for tag in ["TRAIN", "TEST"]}
 
     def train_model(self):
@@ -71,28 +76,20 @@ class MultiLayerPerceptron(AnalysisToolkit):
         # before_train = self.criterion(y_pred.squeeze(), self.y_test)
         # print(f"Test loss before training: {before_train.item()}")
 
-        # for epoch in range(self.EPOCHS):
-        #     for X_train, y_train in self.train_generator:
-        #         self.optimizer.zero_grad()
-        #         y_pred = self.forward(X_train)
-        #         loss = self.criterion(y_pred.squeeze(), y_train)
-        #         print(f"Epoch: {epoch}, Loss: {loss}" )
-        #         loss.backward()
-        #         self.optimizer.step()
         for epoch in range(self.EPOCHS):  # loop over the dataset multiple times
-            running_loss = 0.0
-            for idx, (X_train, y_train) in enumerate(self.trainloader, 0):
+            running_loss, running_acc = 0.0, 0.0
+            for batch_idx, (X_train, y_train) in enumerate(self.trainloader, 0):
                 X_train, y_train = X_train.to(self.device), y_train.to(self.device)
-                # zero the parameter gradients
                 optimizer.zero_grad()
-                # forward + backward + optimize
                 y_pred = model(X_train.view(self.BATCH_SIZE, -1))
-                print(f"Y_PRED TYPE: {y_pred.squeeze()}\nY_TRAIN TYPE: {y_train}")
-                loss = criterion(y_pred.squeeze(), y_train)
+                loss = criterion(y_pred.squeeze(), y_train.float())
+                acc = self.binary_acc(y_pred.squeeze(), y_train.float())
                 loss.backward()
                 optimizer.step()
                 running_loss += loss.item()
-
+                running_acc += acc.item()
+                print(f'Epoch {(epoch+1) + 0:03}: | Loss: {running_loss / len(self.trainloader):.5f} '
+                      f'| Acc: {running_acc / len(self.trainloader):.3f}')
         print('Finished Training')
 
         # self.eval()
