@@ -1,3 +1,5 @@
+from sklearn.metrics import classification_report
+
 from AnalysisToolkit import AnalysisToolkit
 from pyprobar import probar
 import cv2
@@ -62,23 +64,35 @@ class MultiLayerPerceptron(AnalysisToolkit):
         dataset = datasets.ImageFolder(path, transform=transform)
         train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=self.TEST_SIZE, random_state=0)
         dataset_dict = {"TRAIN": Subset(dataset, train_idx), "TEST": Subset(dataset, test_idx)}
-        return {tag: torch.utils.data.DataLoader(dataset_dict[tag], batch_size=self.BATCH_SIZE, shuffle=False)
-                for tag in ["TRAIN", "TEST"]}
+        return {"TRAIN": torch.utils.data.DataLoader(dataset_dict["TRAIN"], batch_size=self.BATCH_SIZE, shuffle=True),
+                "TEST": torch.utils.data.DataLoader(dataset_dict["TEST"], batch_size=1)}
 
-    def train_model(self):
+    def train_model(self, val_flags=False, train_flags=False):
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZE)
         model.to(self.device)
         criterion = nn.BCELoss()
         optimizer = optim.SGD(params=model.parameters(), lr=self.LEARNING_RATE, momentum=self.MOMENTUM)
 
-        # self.eval()
-        # y_pred = self.forward(self.X_test)
-        # before_train = self.criterion(y_pred.squeeze(), self.y_test)
-        # print(f"Test loss before training: {before_train.item()}")
+        model.eval()
+        running_y_pred, running_y_test = [], []
+        with torch.no_grad():
+            for X_test, y_test in self.testloader:
+                X_test, y_test = X_test.to(self.device), y_test.to(self.device)
+                y_pred = model(X_test.view(1, -1))
+                y_pred_tag = torch.round(y_pred)
+                running_y_pred.append(y_pred_tag.cpu().numpy())
+                running_y_test.append(y_test.float())
+        running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
+        running_y_test = [a.squeeze().tolist() for a in running_y_test]
+        if val_flags:
+            print(running_y_pred)
+            print(running_y_test)
+            print(f"VALIDATION BEFORE TRAINING:\n{classification_report(running_y_test, running_y_pred)}")
 
-        for epoch in range(self.EPOCHS):  # loop over the dataset multiple times
+        model.train()
+        for epoch in range(self.EPOCHS):
             running_loss, running_acc = 0.0, 0.0
-            for batch_idx, (X_train, y_train) in enumerate(self.trainloader, 0):
+            for batch_idx, (X_train, y_train) in enumerate(self.trainloader):
                 X_train, y_train = X_train.to(self.device), y_train.to(self.device)
                 optimizer.zero_grad()
                 y_pred = model(X_train.view(self.BATCH_SIZE, -1))
@@ -88,14 +102,25 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 optimizer.step()
                 running_loss += loss.item()
                 running_acc += acc.item()
-                print(f'Epoch {(epoch+1) + 0:03}: | Loss: {running_loss / len(self.trainloader):.5f} '
-                      f'| Acc: {running_acc / len(self.trainloader):.3f}')
+                if train_flags:
+                    print(f'Epoch {(epoch+1) + 0:03}: | Loss: {running_loss / len(self.trainloader):.5f} '
+                          f'| Acc: {running_acc / len(self.trainloader):.3f}')
         print('Finished Training')
 
-        # self.eval()
-        # y_pred = self.forward(self.X_test)
-        # after_train = self.criterion(y_pred.squeeze(), self.y_test)
-        # print(f"Test loss after training: {after_train.item()}")
+        model.eval()
+        running_y_pred, running_y_test = [], []
+        with torch.no_grad():
+            for X_test, y_test in self.testloader:
+                X_test, y_test = X_test.to(self.device), y_test.to(self.device)
+                y_pred = model(X_test.view(1, -1))
+                y_pred_tag = torch.round(y_pred)
+                running_y_pred.append(y_pred_tag.cpu().numpy())
+                running_y_test.append(y_test.float())
+        running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
+        running_y_test = [a.squeeze().tolist() for a in running_y_test]
+        if val_flags:
+            print(running_y_pred)
+            print(f"VALIDATION AFTER TRAINING:\n{classification_report(running_y_test, running_y_pred)}")
 
 class Model(nn.Module):
     def __init__(self, INPUT_SIZE, HIDDEN_SIZE):
@@ -120,4 +145,4 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2)
-    mlp.train_model()
+    mlp.train_model(val_flags=True, train_flags=True)
