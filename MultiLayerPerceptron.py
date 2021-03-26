@@ -1,5 +1,4 @@
 from sklearn.metrics import classification_report
-
 from AnalysisToolkit import AnalysisToolkit
 from pyprobar import probar
 import cv2
@@ -7,40 +6,39 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
-from torch.utils import data
 import torch.nn as nn
 import torch.optim as optim
 from torchvision import datasets, transforms
-from torch.utils.data import Subset
+from torch.utils.data import SubsetRandomSampler
+from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
 class MultiLayerPerceptron(AnalysisToolkit):
 
-    def __init__(self, route, vis_deg, rot_deg):
+    def __init__(self, route, vis_deg, rot_deg, train_path, test_path):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
         self.model_name = 'MLP'
+        np.random.seed(0)
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         print(f"RUNNING ON: {self.device}")
 
         # MLP hyper-parameters
-        self.INPUT_SIZE = 360
-        self.HIDDEN_SIZE = 360
-        self.TEST_SIZE = 0.33
+        self.INPUT_SIZE = 45
+        self.HIDDEN_SIZES = [10, 180, 20]
+        self.TRAIN_VAL_SPLIT = 0.2
         self.EPOCHS = 5
         self.BATCH_SIZE = 32
-        self.LEARNING_RATE = 0.001
+        self.LEARNING_RATE = 0.005
         self.MOMENTUM = 0.9
 
-        # Data generation
-        # self.gen_data(angle=60)
-
         # Data loading
-        dataloaders = self.get_dataloaders("ANN_DATA/60")
+        dataloaders = self.get_dataloaders(train_path, test_path)
         self.trainloader = dataloaders['TRAIN']
+        self.valloader = dataloaders['VAL']
         self.testloader = dataloaders['TEST']
 
-    def gen_data(self, angle):
+    def gen_data(self, angle, train_val_split=0.2):
         print('Generating data...')
         dp = []
         for filename in probar(self.route_filenames):
@@ -49,100 +47,146 @@ class MultiLayerPerceptron(AnalysisToolkit):
             dp.append([f'{filename.strip(".png")}_{angle}', self.rotate(view, angle), 0])
             dp.append([f'{filename.strip(".png")}_-{angle}', self.rotate(view, -angle), 0])
         df = pd.DataFrame(dp, columns=['FILENAME', 'VIEW', 'LABEL'])
-        for filename, view, label in df.values:
-            plt.imsave(f"./ANN_DATA/{angle}/{label}/{filename}.png", cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        train, test = train_test_split(df, test_size=train_val_split, random_state=0)
+        for filename, view, label in train.values:
+            plt.imsave(f"./ANN_DATA/{angle}_DEGREES/TRAIN/{label}/{filename}.png",
+                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        for filename, view, label in test.values:
+            plt.imsave(f"./ANN_DATA/{angle}_DEGREES/TEST/{label}/{filename}.png",
+                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
-    def binary_acc(self, y_pred, y_test):
-        y_pred_tag = torch.round(torch.sigmoid(y_pred))
-        correct_results_sum = (y_pred_tag == y_test).sum().float()
-        acc = correct_results_sum / y_test.shape[0]
-        return torch.round(acc * 100)
-
-    def get_dataloaders(self, path):
+    def get_dataloaders(self, train_path, test_path):
         transform = transforms.Compose([transforms.Grayscale(num_output_channels=1),
                                         transforms.ToTensor()])
-        dataset = datasets.ImageFolder(path, transform=transform)
-        train_idx, test_idx = train_test_split(list(range(len(dataset))), test_size=self.TEST_SIZE, random_state=0)
-        dataset_dict = {"TRAIN": Subset(dataset, train_idx), "TEST": Subset(dataset, test_idx)}
-        return {"TRAIN": torch.utils.data.DataLoader(dataset_dict["TRAIN"], batch_size=self.BATCH_SIZE, shuffle=True),
-                "TEST": torch.utils.data.DataLoader(dataset_dict["TEST"], batch_size=1)}
+        train_dataset = datasets.ImageFolder(train_path, transform=transform)
+        test_dataset = datasets.ImageFolder(test_path, transform=transform)
+        train_dataset_indices = list(range(len(train_dataset)))
+        np.random.shuffle(train_dataset_indices)
+        train_sampler = SubsetRandomSampler(train_dataset_indices[int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset))):])
+        val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
+        return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, shuffle=False, drop_last=True),
+                "VAL": DataLoader(train_dataset, batch_size=1, sampler=val_sampler, shuffle=False, drop_last=True),
+                "TEST": DataLoader(test_dataset, batch_size=1, shuffle=False, drop_last=True)}
+
+    def multi_acc(self, y_pred, y_test):
+        y_pred_softmax = torch.log_softmax(y_pred, dim=1)
+        _, y_pred_tags = torch.max(y_pred_softmax, dim=1)
+        correct_pred = (y_pred_tags == y_test).float()
+        return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
     def train_model(self, val_flags=False, train_flags=False):
-        model = Model(self.INPUT_SIZE, self.HIDDEN_SIZE)
+        model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
-        criterion = nn.BCELoss()
-        optimizer = optim.SGD(params=model.parameters(), lr=self.LEARNING_RATE, momentum=self.MOMENTUM)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(params=model.parameters(), lr=self.LEARNING_RATE)
 
-        model.eval()
-        running_y_pred, running_y_test = [], []
-        with torch.no_grad():
-            for X_test, y_test in self.testloader:
-                X_test, y_test = X_test.to(self.device), y_test.to(self.device)
-                y_pred = model(X_test.view(1, -1))
-                y_pred_tag = torch.round(y_pred)
-                running_y_pred.append(y_pred_tag.cpu().numpy())
-                running_y_test.append(y_test.float())
-        running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
-        running_y_test = [a.squeeze().tolist() for a in running_y_test]
-        if val_flags:
-            print(running_y_pred)
-            print(running_y_test)
-            print(f"VALIDATION BEFORE TRAINING:\n{classification_report(running_y_test, running_y_pred)}")
+        # model.eval()
+        # with torch.no_grad():
+        #     for X_test, y_test in self.testloader:
+        #         X_test, y_test = X_test.to(self.device), y_test.to(self.device)
+        #         print(model(X_test.view(1, -1)))
+        #         y_pred = model(X_test.view(1, -1))
+        #         y_pred_tag = torch.max(y_pred)
+        #         running_y_pred.append(y_pred_tag.cpu().numpy())
+        #         running_y_test.append(y_test.float())
+        # running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
+        # running_y_test = [a.squeeze().tolist() for a in running_y_test]
+        # print(running_y_pred)
+        # print(running_y_test)
+        # if val_flags:
+        #     print(f"VALIDATION BEFORE TRAINING:\n{metrics.r2_score(running_y_test, running_y_pred)}")
 
-        model.train()
+        accuracy_stats = {'train': [], 'val': []}
+        loss_stats = {'train': [], 'val': []}
+        print("Beginning training")
         for epoch in range(self.EPOCHS):
-            running_loss, running_acc = 0.0, 0.0
-            for batch_idx, (X_train, y_train) in enumerate(self.trainloader):
-                X_train, y_train = X_train.to(self.device), y_train.to(self.device)
-                optimizer.zero_grad()
-                y_pred = model(X_train.view(self.BATCH_SIZE, -1))
-                loss = criterion(y_pred.squeeze(), y_train.float())
-                acc = self.binary_acc(y_pred.squeeze(), y_train.float())
-                loss.backward()
-                optimizer.step()
-                running_loss += loss.item()
-                running_acc += acc.item()
-                if train_flags:
-                    print(f'Epoch {(epoch+1) + 0:03}: | Loss: {running_loss / len(self.trainloader):.5f} '
-                          f'| Acc: {running_acc / len(self.trainloader):.3f}')
-        print('Finished Training')
+            model.train()
+            train_epoch_loss, train_epoch_acc = 0, 0
+            for X_train_batch, y_train_batch in self.trainloader:
+                X_train_batch, y_train_batch = X_train_batch.to(self.device), y_train_batch.to(self.device)
 
-        model.eval()
-        running_y_pred, running_y_test = [], []
-        with torch.no_grad():
-            for X_test, y_test in self.testloader:
-                X_test, y_test = X_test.to(self.device), y_test.to(self.device)
-                y_pred = model(X_test.view(1, -1))
-                y_pred_tag = torch.round(y_pred)
-                running_y_pred.append(y_pred_tag.cpu().numpy())
-                running_y_test.append(y_test.float())
-        running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
-        running_y_test = [a.squeeze().tolist() for a in running_y_test]
-        if val_flags:
-            print(running_y_pred)
-            print(f"VALIDATION AFTER TRAINING:\n{classification_report(running_y_test, running_y_pred)}")
+                optimizer.zero_grad()
+                print(y_train_batch.shape)
+
+                y_train_pred = model(X_train_batch.view(-1, self.INPUT_SIZE))
+                # y_train_pred = model(X_train_batch).squeeze()
+
+                # print(y_train_pred.shape)
+
+                train_loss = criterion(y_train_pred, y_train_batch)
+                train_acc = self.multi_acc(y_train_pred, y_train_batch)
+
+                train_loss.backward()
+                optimizer.step()
+
+                train_epoch_loss += train_loss.item()
+                train_epoch_acc += train_acc.item()
+            with torch.no_grad():
+                model.eval()
+                val_epoch_loss, val_epoch_acc = 0, 0
+                for X_val_batch, y_val_batch in self.valloader:
+                    X_val_batch, y_val_batch = X_val_batch.to(self.device), y_val_batch.to(self.device)
+
+                    # y_val_pred = torch.unsqueeze(model(X_val_batch).squeeze(), 0)
+                    # y_val_pred = torch.unsqueeze(model(X_val_batch.view(self.BATCH_SIZE, -1)), 0)
+                    y_val_pred = model(X_val_batch).squeeze()
+
+                    val_loss = criterion(y_val_pred, y_val_batch)
+                    val_acc = self.multi_acc(y_val_pred, y_val_batch)
+
+                    val_epoch_loss += val_loss.item()
+                    val_epoch_acc += val_acc.item()
+
+            loss_stats['train'].append(train_epoch_loss / len(self.trainloader))
+            loss_stats['val'].append(val_epoch_loss / len(self.valloader))
+            accuracy_stats['train'].append(train_epoch_acc / len(self.trainloader))
+            accuracy_stats['val'].append(val_epoch_acc / len(self.valloader))
+
+            print(f"Epoch {epoch +0:02}: | Train Loss: {loss_stats['train'][-1]:.5f} | Val Loss: {loss_stats['val'][-1]:.5f} | "
+                  f"Train Acc: {accuracy_stats['train'][-1]:.3f} | Val Acc: {accuracy_stats['val'][-1]:.3f}")
+
+        print("Finished Training")
+
+        # model.eval()
+        # running_y_pred, running_y_test = [], []
+        # with torch.no_grad():
+        #     for X_test, y_test in self.testloader:
+        #         X_test, y_test = X_test.to(self.device), y_test.to(self.device)
+        #         y_pred = model(X_test.view(1, -1))
+        #         y_pred_tag = torch.max(y_pred)
+        #         running_y_pred.append(y_pred_tag.cpu().numpy())
+        #         running_y_test.append(y_test.float())
+        # running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
+        # running_y_test = [a.squeeze().tolist() for a in running_y_test]
+        # if val_flags:
+        #     print(f"VALIDATION AFTER TRAINING:\n{classification_report(running_y_test, running_y_pred)}")
+
 
 class Model(nn.Module):
-    def __init__(self, INPUT_SIZE, HIDDEN_SIZE):
+    def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
         nn.Module.__init__(self)
 
+        self.HIDDEN_SIZES = HIDDEN_SIZES
+
         # Model layers
-        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZE)
-        self.fc_hidden = nn.Linear(HIDDEN_SIZE, HIDDEN_SIZE)
-        self.fc_output = nn.Linear(HIDDEN_SIZE, 1)
+        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0])
+        self.fc_output = nn.Linear(HIDDEN_SIZES[-1], 2)
 
         # Model activations
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        self.softmax = nn.LogSoftmax(dim=1)
 
-    def forward(self, input):
-        fc_input = self.fc_input(input)
-        relu = self.relu(fc_input)
-        fc_hidden = self.fc_hidden(relu)
-        relu = self.relu(fc_hidden)
-        fc_output = self.fc_output(relu)
-        return self.sigmoid(fc_output)
+    def forward(self, x):
+        x = self.fc_input(x)
+        x = self.relu(x)
+        for i, j in zip(self.HIDDEN_SIZES, self.HIDDEN_SIZES[1:]):
+            fc_hidden = nn.Linear(i, j)
+            x = fc_hidden(x)
+            x = self.relu(x)
+        return self.fc_output(x)
+        # return self.softmax(x)
 
 if __name__ == '__main__':
-    mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2)
+    mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
+                               train_path="ANN_DATA/60_DEGREES/TRAIN", test_path="ANN_DATA/60_DEGREES/TEST")
     mlp.train_model(val_flags=True, train_flags=True)
