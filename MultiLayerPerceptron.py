@@ -1,10 +1,10 @@
-from sklearn.metrics import classification_report
 from AnalysisToolkit import AnalysisToolkit
 from pyprobar import probar
 import cv2
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -20,12 +20,12 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.model_name = 'MLP'
         np.random.seed(0)
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f"RUNNING ON: {self.device}")
 
         # MLP hyper-parameters
-        self.INPUT_SIZE = 45
-        self.HIDDEN_SIZES = [10, 180, 20]
+        self.INPUT_SIZE = 360
+        self.HIDDEN_SIZES = [360, 360, 360]
         self.TRAIN_VAL_SPLIT = 0.2
         self.EPOCHS = 5
         self.BATCH_SIZE = 32
@@ -74,44 +74,27 @@ class MultiLayerPerceptron(AnalysisToolkit):
         correct_pred = (y_pred_tags == y_test).float()
         return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
-    def train_model(self, val_flags=False, train_flags=False):
+    def train_model(self):
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
+
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(params=model.parameters(), lr=self.LEARNING_RATE)
 
-        # model.eval()
-        # with torch.no_grad():
-        #     for X_test, y_test in self.testloader:
-        #         X_test, y_test = X_test.to(self.device), y_test.to(self.device)
-        #         print(model(X_test.view(1, -1)))
-        #         y_pred = model(X_test.view(1, -1))
-        #         y_pred_tag = torch.max(y_pred)
-        #         running_y_pred.append(y_pred_tag.cpu().numpy())
-        #         running_y_test.append(y_test.float())
-        # running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
-        # running_y_test = [a.squeeze().tolist() for a in running_y_test]
-        # print(running_y_pred)
-        # print(running_y_test)
-        # if val_flags:
-        #     print(f"VALIDATION BEFORE TRAINING:\n{metrics.r2_score(running_y_test, running_y_pred)}")
+        print(model)
 
         accuracy_stats = {'train': [], 'val': []}
         loss_stats = {'train': [], 'val': []}
+
         print("Beginning training")
         for epoch in range(self.EPOCHS):
             model.train()
             train_epoch_loss, train_epoch_acc = 0, 0
             for X_train_batch, y_train_batch in self.trainloader:
                 X_train_batch, y_train_batch = X_train_batch.to(self.device), y_train_batch.to(self.device)
-
                 optimizer.zero_grad()
-                print(y_train_batch.shape)
 
-                y_train_pred = model(X_train_batch.view(-1, self.INPUT_SIZE))
-                # y_train_pred = model(X_train_batch).squeeze()
-
-                # print(y_train_pred.shape)
+                y_train_pred = model(X_train_batch.view(self.BATCH_SIZE, -1))
 
                 train_loss = criterion(y_train_pred, y_train_batch)
                 train_acc = self.multi_acc(y_train_pred, y_train_batch)
@@ -127,9 +110,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 for X_val_batch, y_val_batch in self.valloader:
                     X_val_batch, y_val_batch = X_val_batch.to(self.device), y_val_batch.to(self.device)
 
-                    # y_val_pred = torch.unsqueeze(model(X_val_batch).squeeze(), 0)
-                    # y_val_pred = torch.unsqueeze(model(X_val_batch.view(self.BATCH_SIZE, -1)), 0)
-                    y_val_pred = model(X_val_batch).squeeze()
+                    y_val_pred = model(X_val_batch.view(1, -1))
 
                     val_loss = criterion(y_val_pred, y_val_batch)
                     val_acc = self.multi_acc(y_val_pred, y_val_batch)
@@ -142,24 +123,14 @@ class MultiLayerPerceptron(AnalysisToolkit):
             accuracy_stats['train'].append(train_epoch_acc / len(self.trainloader))
             accuracy_stats['val'].append(val_epoch_acc / len(self.valloader))
 
-            print(f"Epoch {epoch +0:02}: | Train Loss: {loss_stats['train'][-1]:.5f} | Val Loss: {loss_stats['val'][-1]:.5f} | "
+            print(f"Epoch {(epoch+1)+0:02}: | Train Loss: {loss_stats['train'][-1]:.5f} | Val Loss: {loss_stats['val'][-1]:.5f} | "
                   f"Train Acc: {accuracy_stats['train'][-1]:.3f} | Val Acc: {accuracy_stats['val'][-1]:.3f}")
-
         print("Finished Training")
 
-        # model.eval()
-        # running_y_pred, running_y_test = [], []
-        # with torch.no_grad():
-        #     for X_test, y_test in self.testloader:
-        #         X_test, y_test = X_test.to(self.device), y_test.to(self.device)
-        #         y_pred = model(X_test.view(1, -1))
-        #         y_pred_tag = torch.max(y_pred)
-        #         running_y_pred.append(y_pred_tag.cpu().numpy())
-        #         running_y_test.append(y_test.float())
-        # running_y_pred = [a.squeeze().tolist() for a in running_y_pred]
-        # running_y_test = [a.squeeze().tolist() for a in running_y_test]
-        # if val_flags:
-        #     print(f"VALIDATION AFTER TRAINING:\n{classification_report(running_y_test, running_y_pred)}")
+        print(accuracy_stats)
+
+        self.plot_ANN_data(data=accuracy_stats, title="Train-Val Accuracy/Epoch")
+        self.plot_ANN_data(data=loss_stats, title="Train-Val Loss/Epoch")
 
 
 class Model(nn.Module):
@@ -170,23 +141,18 @@ class Model(nn.Module):
 
         # Model layers
         self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0])
+        self.fc_hidden = nn.ModuleList([nn.Linear(i, j) for i, j in zip(self.HIDDEN_SIZES, self.HIDDEN_SIZES[1:])])
         self.fc_output = nn.Linear(HIDDEN_SIZES[-1], 2)
 
-        # Model activations
-        self.relu = nn.ReLU()
-        self.softmax = nn.LogSoftmax(dim=1)
+        self.activation = nn.ReLU()
 
-    def forward(self, x):
-        x = self.fc_input(x)
-        x = self.relu(x)
-        for i, j in zip(self.HIDDEN_SIZES, self.HIDDEN_SIZES[1:]):
-            fc_hidden = nn.Linear(i, j)
-            x = fc_hidden(x)
-            x = self.relu(x)
+    def forward(self, inputs):
+        x = self.activation(self.fc_input(inputs))
+        for layer in self.fc_hidden:
+            x = self.activation(layer(x))
         return self.fc_output(x)
-        # return self.softmax(x)
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
                                train_path="ANN_DATA/60_DEGREES/TRAIN", test_path="ANN_DATA/60_DEGREES/TEST")
-    mlp.train_model(val_flags=True, train_flags=True)
+    mlp.train_model()

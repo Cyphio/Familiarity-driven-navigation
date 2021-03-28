@@ -156,6 +156,19 @@ class AnalysisToolkit:
             total_count += 1
         return (correct_count/total_count)*100
 
+    def plot_ANN_data(self, data, title, save_data=False):
+        df = pd.DataFrame.from_dict(data).reset_index().melt(id_vars=['index']).rename(columns={"index": "epochs"})
+        plt.plot(df["index", df["epochs"]])
+        plt.title(title)
+        plt.ylabel("value")
+        plt.xlabel("epochs")
+        plt.xticks(range(0, len(df.index)), df.index)
+        if save_data:
+            filename = ''
+            self.save_plot(plt, "ANN_DATA/", filename)
+        plt.show()
+
+
     def error_boxplot(self, data_paths, index_titles=None, save_data=False):
         heading_errors = []
         indexes = []
