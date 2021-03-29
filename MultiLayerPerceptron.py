@@ -1,7 +1,5 @@
-import datetime
-
+from PIL import Image
 from sklearn.metrics import classification_report
-
 from AnalysisToolkit import AnalysisToolkit
 from pyprobar import probar
 import cv2
@@ -34,6 +32,9 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.BATCH_SIZE = 32
         self.LEARNING_RATE = 0.005
 
+        # Preprocess transforms
+        self.loader = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
+
         # Data loading
         dataloaders = self.get_dataloaders(train_path, test_path)
         self.trainloader = dataloaders['TRAIN']
@@ -58,18 +59,16 @@ class MultiLayerPerceptron(AnalysisToolkit):
                        cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     def get_dataloaders(self, train_path, test_path):
-        transform = transforms.Compose([transforms.Grayscale(num_output_channels=1),
-                                        transforms.ToTensor()])
-        train_dataset = datasets.ImageFolder(train_path, transform=transform)
-        test_dataset = datasets.ImageFolder(test_path, transform=transform)
+        train_dataset = datasets.ImageFolder(train_path, transform=self.loader)
+        test_dataset = datasets.ImageFolder(test_path, transform=self.loader)
         train_dataset_indices = list(range(len(train_dataset)))
         np.random.seed(101)
         np.random.shuffle(train_dataset_indices)
         train_sampler = SubsetRandomSampler(train_dataset_indices[int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset))):])
         val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
         return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, shuffle=False, drop_last=True),
-                "VAL": DataLoader(train_dataset, batch_size=1, sampler=val_sampler, shuffle=False, drop_last=True),
-                "TEST": DataLoader(test_dataset, batch_size=1, shuffle=False, drop_last=True)}
+                "VAL": DataLoader(train_dataset, batch_size=1, sampler=val_sampler, shuffle=False),
+                "TEST": DataLoader(test_dataset, batch_size=1, shuffle=False)}
 
     def multi_acc(self, y_pred, y_test):
         y_pred_softmax = torch.log_softmax(y_pred, dim=1)
@@ -136,10 +135,13 @@ class MultiLayerPerceptron(AnalysisToolkit):
         if save_model:
             torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
 
-    def test_model(self, model_path):
+    def load_model(self, model_path):
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
+        return model
+
+    def test_model(self, model):
         y_pred, y_ground_truth = [], []
         with torch.no_grad():
             for X_test_batch, y_test_batch in self.testloader:
@@ -151,6 +153,16 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 y_pred.append(y_pred_tag.cpu().numpy())
                 y_ground_truth.append(y_test_batch.cpu().numpy())
         print(classification_report(y_ground_truth, y_pred))
+
+    def get_rFF(self, view, view_heading, model):
+        view_preprocessed = self.preprocess(view)
+        rFF = {}
+        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+            view = self.rotate(view_preprocessed, i)
+            tensor = self.loader(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            rFF[(i + view_heading) % self.vis_deg] = torch.max(model(tensor), dim=1)
+        return rFF
+
 
 class Model(nn.Module):
     def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
@@ -178,4 +190,13 @@ if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
                                train_path="ANN_DATA/60_DEGREES_DATA/TRAIN", test_path="ANN_DATA/60_DEGREES_DATA/TEST")
     # mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_60_DEGREES_DATA", save_model=True)
-    mlp.test_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
+    model = mlp.load_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
+
+    # mlp.test_model(model)
+
+    idx = 0
+    filename = mlp.route_filenames[idx]
+    route_view = cv2.imread(mlp.route_path + filename)
+    route_heading = mlp.route_headings[idx]
+    rFF = mlp.get_rFF(view=route_view, view_heading=route_heading, model=model)
+    print(rFF)

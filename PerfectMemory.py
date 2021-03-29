@@ -12,15 +12,15 @@ class PerfectMemory(AnalysisToolkit):
 
     # Rotational Image Difference Function for two views
     def get_view_rIDF(self, view_1, view_2, view_1_heading=0):
-        view_1_downsampled = self.preprocess(view_1)
-        view_2_downsampled = self.preprocess(view_2)
-        view_rIDF = {}
+        view_1_preprocessed = self.preprocess(view_1)
+        view_2_preprocessed = self.preprocess(view_2)
+        rIDF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
-            view_1_rotated = self.rotate(view_1_downsampled, i)
-            mse = np.sum(self.image_difference(view_1_rotated, view_2_downsampled)**2)
-            mse /= float(view_1_downsampled.shape[0] * view_1_downsampled.shape[1])
-            view_rIDF[(i + view_1_heading) % self.vis_deg] = mse
-        return view_rIDF
+            view_1_rotated = self.rotate(view_1_preprocessed, i)
+            mse = np.sum(self.image_difference(view_1_rotated, view_2_preprocessed)**2)
+            mse /= float(view_1_preprocessed.shape[0] * view_1_preprocessed.shape[1])
+            rIDF[(i + view_1_heading) % self.vis_deg] = mse
+        return rIDF
 
     # Rotational Image Difference Function for a view over a route representation
     def get_route_rIDF(self, view, view_heading=0):
