@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.8.8",
+    "heartbeatAt": "2021-03-29T19:17:49.691696",
+    "startedAt": "2021-03-29T19:17:39.774526",
+    "docker": null,
+    "gpu": "GeForce MX350",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:/Users/harry/PycharmProjects/RouteNavigation/MultiLayerPerceptron.py",
+    "codePath": "MultiLayerPerceptron.py",
+    "git": {
+        "remote": "https://github.com/Cyphio/RouteNavigation.git",
+        "commit": "ad631767ded01c40807c28db7052c23ede0a42b7"
+    },
+    "email": "Harry@mbr-online.co.uk",
+    "root": "C:/Users/harry/PycharmProjects/RouteNavigation",
+    "host": "LAPTOP-G5BCIL22",
+    "username": "harry",
+    "executable": "C:\\Users\\harry\\anaconda3\\envs\\ML38\\python.exe"
+}

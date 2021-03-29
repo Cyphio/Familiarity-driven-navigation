@@ -35,7 +35,10 @@ class AnalysisToolkit:
 
     def preprocess(self, view):
         view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
-        return cv2.resize(view, (360, 68))
+        return cv2.resize(view, (45, 8))
+
+    def rotate(self, view, angle):
+        return np.roll(view, int(view.shape[1] * (angle / self.vis_deg)), axis=1)
 
     def image_difference(self, minuend, subtrahend):
         return abs(minuend.astype("float") - subtrahend.astype("float"))
@@ -153,6 +156,18 @@ class AnalysisToolkit:
             total_count += 1
         return (correct_count/total_count)*100
 
+    def plot_ANN_data(self, data, title, save_data=False):
+        plt.plot(data['train'])
+        plt.plot(data['val'])
+        plt.title(title)
+        plt.ylabel("value")
+        plt.xlabel("epochs")
+        if save_data:
+            filename = ''
+            self.save_plot(plt, "ANN_DATA/", filename)
+        plt.show()
+
+
     def error_boxplot(self, data_paths, index_titles=None, save_data=False):
         heading_errors = []
         indexes = []
@@ -237,7 +252,7 @@ class AnalysisToolkit:
         rIDF = self.get_view_rIDF(view, ground_truth_view, view_heading)
         familiar_heading = self.get_most_familiar_heading(self.get_rFF(rIDF))
 
-        rotated_view = np.roll(view, int(view.shape[1] * ((familiar_heading - view_heading) / self.vis_deg)), axis=1)
+        rotated_view = self.rotate(view, familiar_heading-view_heading)
 
         rotated_view_downsampled = self.preprocess(rotated_view)
         ground_truth_view_downsampled = self.preprocess(ground_truth_view)

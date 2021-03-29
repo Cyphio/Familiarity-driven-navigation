@@ -10,6 +10,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\16_deg_px_res\16-3-2021_18-58-18_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\28-2-2021_15-45-13_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>
@@ -24,6 +31,20 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\4_deg_px_res\16-3-2021_17-36-29_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\MultiLayerPerceptron.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\PerfectMemory.py">
           <value>
             <Attribute>
@@ -31,7 +52,28 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\ant_world_image_databases\grid\database_entries.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\ant_world_image_databases\routes\ant1_route1\database_entries.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\ant_world_image_databases\routes\ant1_route7\database_entries.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\ant_world_image_databases\routes\ant1_route9\database_entries.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
