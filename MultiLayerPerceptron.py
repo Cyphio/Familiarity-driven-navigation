@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -12,25 +11,25 @@ from torchvision import datasets, transforms
 from torch.utils.data import SubsetRandomSampler
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
+import wandb
 
 class MultiLayerPerceptron(AnalysisToolkit):
 
     def __init__(self, route, vis_deg, rot_deg, train_path, test_path):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
         self.model_name = 'MLP'
-        np.random.seed(0)
+        wandb.init(project='routenavigation-mlp')
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f"RUNNING ON: {self.device}")
 
         # MLP hyper-parameters
         self.INPUT_SIZE = 360
-        self.HIDDEN_SIZES = [360, 360, 360]
+        self.HIDDEN_SIZES = [360, 360]
         self.TRAIN_VAL_SPLIT = 0.2
-        self.EPOCHS = 5
+        self.EPOCHS = 50
         self.BATCH_SIZE = 32
         self.LEARNING_RATE = 0.005
-        self.MOMENTUM = 0.9
 
         # Data loading
         dataloaders = self.get_dataloaders(train_path, test_path)
@@ -61,6 +60,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         train_dataset = datasets.ImageFolder(train_path, transform=transform)
         test_dataset = datasets.ImageFolder(test_path, transform=transform)
         train_dataset_indices = list(range(len(train_dataset)))
+        # np.random.seed(0)
         np.random.shuffle(train_dataset_indices)
         train_sampler = SubsetRandomSampler(train_dataset_indices[int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset))):])
         val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
@@ -81,7 +81,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(params=model.parameters(), lr=self.LEARNING_RATE)
 
-        print(model)
+        wandb.watch(model)
 
         accuracy_stats = {'train': [], 'val': []}
         loss_stats = {'train': [], 'val': []}
@@ -94,7 +94,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 X_train_batch, y_train_batch = X_train_batch.to(self.device), y_train_batch.to(self.device)
                 optimizer.zero_grad()
 
-                y_train_pred = model(X_train_batch.view(self.BATCH_SIZE, -1))
+                y_train_pred = model(X_train_batch)
 
                 train_loss = criterion(y_train_pred, y_train_batch)
                 train_acc = self.multi_acc(y_train_pred, y_train_batch)
@@ -110,7 +110,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 for X_val_batch, y_val_batch in self.valloader:
                     X_val_batch, y_val_batch = X_val_batch.to(self.device), y_val_batch.to(self.device)
 
-                    y_val_pred = model(X_val_batch.view(1, -1))
+                    y_val_pred = model(X_val_batch)
 
                     val_loss = criterion(y_val_pred, y_val_batch)
                     val_acc = self.multi_acc(y_val_pred, y_val_batch)
@@ -125,12 +125,9 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
             print(f"Epoch {(epoch+1)+0:02}: | Train Loss: {loss_stats['train'][-1]:.5f} | Val Loss: {loss_stats['val'][-1]:.5f} | "
                   f"Train Acc: {accuracy_stats['train'][-1]:.3f} | Val Acc: {accuracy_stats['val'][-1]:.3f}")
+            wandb.log({'Train Loss': loss_stats['train'][-1], 'Val Loss': loss_stats['val'][-1],
+                       'Train Acc': accuracy_stats['train'][-1], 'Val Acc': accuracy_stats['val'][-1]})
         print("Finished Training")
-
-        print(accuracy_stats)
-
-        self.plot_ANN_data(data=accuracy_stats, title="Train-Val Accuracy/Epoch")
-        self.plot_ANN_data(data=loss_stats, title="Train-Val Loss/Epoch")
 
 
 class Model(nn.Module):
@@ -143,11 +140,14 @@ class Model(nn.Module):
         self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0])
         self.fc_hidden = nn.ModuleList([nn.Linear(i, j) for i, j in zip(self.HIDDEN_SIZES, self.HIDDEN_SIZES[1:])])
         self.fc_output = nn.Linear(HIDDEN_SIZES[-1], 2)
+        self.dropout = nn.Dropout(0.5)
 
         self.activation = nn.ReLU()
 
     def forward(self, inputs):
-        x = self.activation(self.fc_input(inputs))
+        x = inputs.view(inputs.size(0), -1)
+        # x = self.dropout(x)
+        x = self.activation(self.fc_input(x))
         for layer in self.fc_hidden:
             x = self.activation(layer(x))
         return self.fc_output(x)

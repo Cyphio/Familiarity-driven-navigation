@@ -1,0 +1,55 @@
+RUNNING ON: cuda
+Beginning training
+C:\Users\harry\anaconda3\envs\ML38\lib\site-packages\torch\nn\modules\module.py:795: UserWarning: Using a non-full backward hook when the forward contains multiple autograd Nodes is deprecated and will be removed in future versions. This hook will be missing some grad_input. Please use register_full_backward_hook to get the documented behavior.
+  warnings.warn("Using a non-full backward hook when the forward contains multiple autograd Nodes "
+Epoch 01: | Train Loss: 0.68314 | Val Loss: 0.63608 | Train Acc: 65.479 | Val Acc: 66.324
+Epoch 02: | Train Loss: 0.63366 | Val Loss: 0.63037 | Train Acc: 66.625 | Val Acc: 66.324
+Epoch 03: | Train Loss: 0.62053 | Val Loss: 0.59816 | Train Acc: 66.479 | Val Acc: 66.324
+Epoch 04: | Train Loss: 0.61399 | Val Loss: 0.57428 | Train Acc: 66.458 | Val Acc: 66.324
+Epoch 05: | Train Loss: 0.60735 | Val Loss: 0.56148 | Train Acc: 68.271 | Val Acc: 66.324
+Epoch 06: | Train Loss: 0.60490 | Val Loss: 0.57661 | Train Acc: 68.104 | Val Acc: 66.324
+Epoch 07: | Train Loss: 0.60089 | Val Loss: 0.56704 | Train Acc: 68.354 | Val Acc: 66.324
+Epoch 08: | Train Loss: 0.58934 | Val Loss: 0.57502 | Train Acc: 68.604 | Val Acc: 66.324
+Epoch 09: | Train Loss: 0.60446 | Val Loss: 0.59194 | Train Acc: 68.000 | Val Acc: 66.324
+Epoch 10: | Train Loss: 0.59830 | Val Loss: 0.59617 | Train Acc: 68.250 | Val Acc: 82.262
+Epoch 11: | Train Loss: 0.60327 | Val Loss: 0.55116 | Train Acc: 68.021 | Val Acc: 66.838
+Epoch 12: | Train Loss: 0.59413 | Val Loss: 0.53922 | Train Acc: 69.312 | Val Acc: 66.324
+Epoch 13: | Train Loss: 0.58230 | Val Loss: 0.52918 | Train Acc: 68.625 | Val Acc: 66.581
+Epoch 14: | Train Loss: 0.58126 | Val Loss: 0.49642 | Train Acc: 68.896 | Val Acc: 73.008
+Epoch 15: | Train Loss: 0.58674 | Val Loss: 0.51398 | Train Acc: 68.771 | Val Acc: 73.779
+Epoch 16: | Train Loss: 0.58028 | Val Loss: 0.52831 | Train Acc: 70.125 | Val Acc: 73.008
+Epoch 17: | Train Loss: 0.59037 | Val Loss: 0.53853 | Train Acc: 68.875 | Val Acc: 66.324
+Epoch 18: | Train Loss: 0.58043 | Val Loss: 0.51816 | Train Acc: 69.354 | Val Acc: 66.581
+Epoch 19: | Train Loss: 0.58783 | Val Loss: 0.52782 | Train Acc: 68.250 | Val Acc: 79.434
+Epoch 20: | Train Loss: 0.59836 | Val Loss: 0.55803 | Train Acc: 67.417 | Val Acc: 76.864
+Epoch 21: | Train Loss: 0.57823 | Val Loss: 0.52639 | Train Acc: 70.646 | Val Acc: 66.581
+Epoch 22: | Train Loss: 0.57651 | Val Loss: 0.51655 | Train Acc: 70.583 | Val Acc: 71.465
+Epoch 23: | Train Loss: 0.58421 | Val Loss: 0.53621 | Train Acc: 69.042 | Val Acc: 66.581
+Epoch 24: | Train Loss: 0.58772 | Val Loss: 0.54294 | Train Acc: 69.396 | Val Acc: 67.609
+Epoch 25: | Train Loss: 0.57417 | Val Loss: 0.55909 | Train Acc: 69.812 | Val Acc: 66.581
+Epoch 26: | Train Loss: 0.58465 | Val Loss: 0.52049 | Train Acc: 68.771 | Val Acc: 69.923
+Epoch 27: | Train Loss: 0.58212 | Val Loss: 0.54106 | Train Acc: 69.625 | Val Acc: 66.324
+Epoch 28: | Train Loss: 0.58718 | Val Loss: 0.51898 | Train Acc: 69.292 | Val Acc: 67.352
+Epoch 29: | Train Loss: 0.58671 | Val Loss: 0.53826 | Train Acc: 67.875 | Val Acc: 71.465
+Epoch 30: | Train Loss: 0.60771 | Val Loss: 0.57143 | Train Acc: 67.562 | Val Acc: 66.324
+Epoch 31: | Train Loss: 0.59172 | Val Loss: 0.54613 | Train Acc: 68.646 | Val Acc: 66.581
+Epoch 32: | Train Loss: 0.58420 | Val Loss: 0.54212 | Train Acc: 69.208 | Val Acc: 66.324
+Epoch 33: | Train Loss: 0.58569 | Val Loss: 0.53791 | Train Acc: 68.646 | Val Acc: 66.324
+Epoch 34: | Train Loss: 0.57500 | Val Loss: 0.55697 | Train Acc: 68.750 | Val Acc: 66.324
+Epoch 35: | Train Loss: 0.59033 | Val Loss: 0.52561 | Train Acc: 69.646 | Val Acc: 72.237
+Epoch 36: | Train Loss: 0.58157 | Val Loss: 0.52659 | Train Acc: 69.312 | Val Acc: 77.121
+Epoch 37: | Train Loss: 0.58642 | Val Loss: 0.52144 | Train Acc: 68.208 | Val Acc: 82.005
+Epoch 38: | Train Loss: 0.57401 | Val Loss: 0.51800 | Train Acc: 71.875 | Val Acc: 70.694
+Epoch 39: | Train Loss: 0.58762 | Val Loss: 0.55800 | Train Acc: 69.312 | Val Acc: 66.324
+Epoch 40: | Train Loss: 0.57494 | Val Loss: 0.51293 | Train Acc: 70.312 | Val Acc: 68.638
+Epoch 41: | Train Loss: 0.58566 | Val Loss: 0.51947 | Train Acc: 69.604 | Val Acc: 67.352
+Epoch 42: | Train Loss: 0.57258 | Val Loss: 0.52429 | Train Acc: 70.646 | Val Acc: 69.666
+Epoch 43: | Train Loss: 0.57251 | Val Loss: 0.55712 | Train Acc: 69.792 | Val Acc: 66.324
+Epoch 44: | Train Loss: 0.58485 | Val Loss: 0.55286 | Train Acc: 68.938 | Val Acc: 66.324
+Epoch 45: | Train Loss: 0.56795 | Val Loss: 0.53005 | Train Acc: 70.417 | Val Acc: 66.324
+Epoch 46: | Train Loss: 0.58462 | Val Loss: 0.59653 | Train Acc: 68.021 | Val Acc: 73.522
+Epoch 47: | Train Loss: 0.59675 | Val Loss: 0.53884 | Train Acc: 67.208 | Val Acc: 66.324
+Epoch 48: | Train Loss: 0.57825 | Val Loss: 0.54104 | Train Acc: 70.188 | Val Acc: 66.581
+Epoch 49: | Train Loss: 0.57473 | Val Loss: 0.51295 | Train Acc: 68.896 | Val Acc: 81.491
+Epoch 50: | Train Loss: 0.58655 | Val Loss: 0.59161 | Train Acc: 69.042 | Val Acc: 83.805
+Finished Training
