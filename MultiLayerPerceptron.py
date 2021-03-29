@@ -1,3 +1,7 @@
+import datetime
+
+from sklearn.metrics import classification_report
+
 from AnalysisToolkit import AnalysisToolkit
 from pyprobar import probar
 import cv2
@@ -18,7 +22,6 @@ class MultiLayerPerceptron(AnalysisToolkit):
     def __init__(self, route, vis_deg, rot_deg, train_path, test_path):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
         self.model_name = 'MLP'
-        wandb.init(project='routenavigation-mlp')
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         print(f"RUNNING ON: {self.device}")
@@ -60,7 +63,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         train_dataset = datasets.ImageFolder(train_path, transform=transform)
         test_dataset = datasets.ImageFolder(test_path, transform=transform)
         train_dataset_indices = list(range(len(train_dataset)))
-        # np.random.seed(0)
+        np.random.seed(101)
         np.random.shuffle(train_dataset_indices)
         train_sampler = SubsetRandomSampler(train_dataset_indices[int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset))):])
         val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
@@ -74,7 +77,9 @@ class MultiLayerPerceptron(AnalysisToolkit):
         correct_pred = (y_pred_tags == y_test).float()
         return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
-    def train_model(self):
+    def train_model(self, save_path="MLP_MODELS", save_model=True):
+        wandb.init(project='routenavigation-mlp')
+
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
 
@@ -128,7 +133,24 @@ class MultiLayerPerceptron(AnalysisToolkit):
             wandb.log({'Train Loss': loss_stats['train'][-1], 'Val Loss': loss_stats['val'][-1],
                        'Train Acc': accuracy_stats['train'][-1], 'Val Acc': accuracy_stats['val'][-1]})
         print("Finished Training")
+        if save_model:
+            torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
 
+    def test_model(self, model_path):
+        model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
+        model.to(self.device)
+        model.load_state_dict(torch.load(model_path))
+        y_pred, y_ground_truth = [], []
+        with torch.no_grad():
+            for X_test_batch, y_test_batch in self.testloader:
+                X_test_batch, y_test_batch = X_test_batch.to(self.device), y_test_batch.to(self.device)
+
+                y_test_pred = model(X_test_batch)
+                _, y_pred_tag = torch.max(y_test_pred, dim=1)
+
+                y_pred.append(y_pred_tag.cpu().numpy())
+                y_ground_truth.append(y_test_batch.cpu().numpy())
+        print(classification_report(y_ground_truth, y_pred))
 
 class Model(nn.Module):
     def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
@@ -154,5 +176,6 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
-                               train_path="ANN_DATA/60_DEGREES/TRAIN", test_path="ANN_DATA/60_DEGREES/TEST")
-    mlp.train_model()
+                               train_path="ANN_DATA/60_DEGREES_DATA/TRAIN", test_path="ANN_DATA/60_DEGREES_DATA/TEST")
+    # mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_60_DEGREES_DATA", save_model=True)
+    mlp.test_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
