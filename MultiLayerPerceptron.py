@@ -26,7 +26,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
         # MLP hyper-parameters
         self.INPUT_SIZE = 360
-        self.HIDDEN_SIZES = [360, 360]
+        self.HIDDEN_SIZES = [(360, 360)]
         self.TRAIN_VAL_SPLIT = 0.2
         self.EPOCHS = 50
         self.BATCH_SIZE = 32
@@ -139,7 +139,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
-        return model
+        self.model = model
 
     def test_model(self, model):
         y_pred, y_ground_truth = [], []
@@ -154,33 +154,38 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 y_ground_truth.append(y_test_batch.cpu().numpy())
         print(classification_report(y_ground_truth, y_pred))
 
-    def get_rFF(self, view, view_heading, model):
+    def get_view_rFF(self, view, view_2, view_heading=0):
         view_preprocessed = self.preprocess(view)
         rFF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             view = self.rotate(view_preprocessed, i)
             tensor = self.loader(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
-            rFF[(i + view_heading) % self.vis_deg] = torch.max(model(tensor), dim=1)
+            pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1, index=torch.tensor([1]).to(self.device))
+            rFF[(i + view_heading) % self.vis_deg] = pos_tag_val.item()
         return rFF
+
+    # Get the most familiar heading given an rIDF for a view
+    def get_most_familiar_heading(self, rFF):
+        return max(rFF, key=rFF.get)
+
+    # Calculates the signal strength of an rFF
+    def get_signal_strength(self, rFF):
+        return max(rFF.values()) / np.array(list(rFF.values())).mean()
 
 
 class Model(nn.Module):
     def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
         nn.Module.__init__(self)
 
-        self.HIDDEN_SIZES = HIDDEN_SIZES
-
         # Model layers
-        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0])
-        self.fc_hidden = nn.ModuleList([nn.Linear(i, j) for i, j in zip(self.HIDDEN_SIZES, self.HIDDEN_SIZES[1:])])
-        self.fc_output = nn.Linear(HIDDEN_SIZES[-1], 2)
-        self.dropout = nn.Dropout(0.5)
+        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0][0])
+        self.fc_hidden = nn.ModuleList([nn.Linear(layer[0], layer[1]) for layer in HIDDEN_SIZES])
+        self.fc_output = nn.Linear(HIDDEN_SIZES[-1][1], 2)
 
         self.activation = nn.ReLU()
 
     def forward(self, inputs):
         x = inputs.view(inputs.size(0), -1)
-        # x = self.dropout(x)
         x = self.activation(self.fc_input(x))
         for layer in self.fc_hidden:
             x = self.activation(layer(x))
@@ -190,13 +195,18 @@ if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
                                train_path="ANN_DATA/60_DEGREES_DATA/TRAIN", test_path="ANN_DATA/60_DEGREES_DATA/TEST")
     # mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_60_DEGREES_DATA", save_model=True)
-    model = mlp.load_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
+    mlp.load_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
 
     # mlp.test_model(model)
 
-    idx = 0
-    filename = mlp.route_filenames[idx]
-    route_view = cv2.imread(mlp.route_path + filename)
-    route_heading = mlp.route_headings[idx]
-    rFF = mlp.get_rFF(view=route_view, view_heading=route_heading, model=model)
-    print(rFF)
+    # Off-route view analysis
+    filename = mlp.grid_filenames.get((500, 500))
+    grid_view = cv2.imread(mlp.grid_path + filename)
+    mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+
+    # On-route view analysis
+    # idx = 405
+    # filename = pm.route_filenames[idx]
+    # route_view = cv2.imread(pm.route_path + filename)
+    # route_heading = pm.route_headings[idx]
+    # pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)

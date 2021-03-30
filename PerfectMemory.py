@@ -35,17 +35,21 @@ class PerfectMemory(AnalysisToolkit):
         min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in route_rIDF.items()}
         return min(min_RIDF_idx.values())[1]
 
-    # Calculates the signal strength of an rIDF
-    def get_signal_strength(self, rIDF):
-        return -(min(rIDF.values()) / np.array(list(rIDF.values())).mean())
+    # Rotational Familiarity Function of a view against a route stored in perfect memory
+    def get_route_rFF(self, view, view_heading=0):
+        return {k: -np.amin(v) for k, v in self.get_route_rIDF(view, view_heading).items()}
 
-    # Rotational Familiarity Function
-    def get_rFF(self, route_rIDF):
-        return {k: -np.amin(v) for k, v in route_rIDF.items()}
+    # Rotational Familiarity Function of a view against another view
+    def get_view_rFF(self, view_1, view_2, view_1_heading=0):
+        return {k: -v for k, v in self.get_view_rIDF(view_1, view_2, view_1_heading).items()}
 
     # Get the most familiar heading given an rIDF for a view
     def get_most_familiar_heading(self, rFF):
         return max(rFF, key=rFF.get)
+
+    # Calculates the signal strength of an rFF
+    def get_signal_strength(self, rFF):
+        return max(rFF.values()) / np.array(list(rFF.values())).mean()
 
 
 if __name__ == "__main__":
@@ -55,33 +59,33 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=20, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_data=True)
-    one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
-    two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
-    four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
-    eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
-    sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv"
-    pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path, sixteen_px_data_path],
-                     ["1 degree resolution", "2 degree resolution", "4 degree resolution", "8 degree resolution", "16 degree resolution"],
-                     save_data=True)
-    four_px_enviro_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/15-3-2021_22-1-36_ant1_route1_140x740_20.csv"
-    pm.error_boxplot([four_px_data_path, four_px_enviro_data_path],
-                     ["Within route corridor", "Across environment"],
-                     save_data=True)
+    # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
+    # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
+    # four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
+    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
+    # sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv"
+    # pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path, sixteen_px_data_path],
+    #                  ["1 degree resolution", "2 degree resolution", "4 degree resolution", "8 degree resolution", "16 degree resolution"],
+    #                  save_data=True)
+    # four_px_enviro_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/15-3-2021_22-1-36_ant1_route1_140x740_20.csv"
+    # pm.error_boxplot([four_px_data_path, four_px_enviro_data_path],
+    #                  ["Within route corridor", "Across environment"],
+    #                  save_data=True)
 
     # Route view analysis
     # pm.route_analysis(step=100)
 
     # Off-route view analysis
-    # filename = pm.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(pm.grid_path + filename)
+    filename = pm.grid_filenames.get((500, 500))
+    grid_view = cv2.imread(pm.grid_path + filename)
     # pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
-    # idx = 405
-    # filename = pm.route_filenames[idx]
-    # route_view = cv2.imread(pm.route_path + filename)
-    # route_heading = pm.route_headings[idx]
-    # pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
+    idx = 405
+    filename = pm.route_filenames[idx]
+    route_view = cv2.imread(pm.route_path + filename)
+    route_heading = pm.route_headings[idx]
+    pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
 
     # Off-route best matched view analysis
     # pm.best_matched_view_analysis(view_x=610, view_y=810, save_data=True)

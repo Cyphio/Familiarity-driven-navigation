@@ -87,8 +87,7 @@ class AnalysisToolkit:
         for x, y in probar(quiver_coors):
             view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
 
-            route_rIDF = self.get_route_rIDF(view)
-            rFF = self.get_rFF(route_rIDF)
+            rFF = self.get_route_rFF(view)
             familiar_heading = self.get_most_familiar_heading(rFF)
 
             matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
@@ -200,8 +199,8 @@ class AnalysisToolkit:
         plt.show()
 
     def view_analysis(self, view_1, view_2, view_1_heading=0, save_data=False):
-        rIDF = self.get_view_rIDF(view_1, view_2, view_1_heading)
-        familiar_heading = self.get_most_familiar_heading(self.get_rFF(rIDF))
+        rFF = self.get_view_rFF(view_1, view_2, view_1_heading)
+        familiar_heading = self.get_most_familiar_heading(rFF)
 
         rotated_view = np.roll(view_1, int(view_1.shape[1] * ((familiar_heading - view_1_heading) / self.vis_deg)), axis=1)
 
@@ -225,18 +224,18 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(rIDF.items())))
-        plt.title(f"rIDF\n"
-                  f"Confidence: {round(self.get_signal_strength(rIDF), 2)}, Minimum: {round(min(rIDF.values()), 2)}")
-        plt.ylabel("MSE in pixel intensities")
+        plt.plot(*zip(*sorted(rFF.items())))
+        plt.title(f"rFF\n"
+                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(max(rFF.values()), 2)}")
+        plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
-        plt.ylim(500, 1400)
+        # plt.ylim(500, 1400)
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
         if save_data:
-            filename = "RIDF"
+            filename = "RFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
@@ -249,8 +248,8 @@ class AnalysisToolkit:
         ground_truth_view_heading = self.route_headings[ground_truth_view_idx]
         ground_truth_view = cv2.imread(self.route_path + ground_truth_view_filename)
 
-        rIDF = self.get_view_rIDF(view, ground_truth_view, view_heading)
-        familiar_heading = self.get_most_familiar_heading(self.get_rFF(rIDF))
+        rFF = self.get_view_rFF(view, ground_truth_view, view_heading)
+        familiar_heading = self.get_most_familiar_heading(rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
 
@@ -274,10 +273,10 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(rIDF.items())))
-        plt.title(f"rIDF between given view and {ground_truth_view_filename}\n"
-                  f"Confidence: {round(self.get_signal_strength(rIDF), 2)}, Minimum: {round(min(rIDF.values()), 2)}")
-        plt.ylabel("MSE in pixel intensities")
+        plt.plot(*zip(*sorted(rFF.items())))
+        plt.title(f"rFF\n"
+                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(min(rFF.values()), 2)}")
+        plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         plt.ylim(500, 1400)
@@ -285,16 +284,15 @@ class AnalysisToolkit:
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
         if save_data:
-            filename = "RIDF"
+            filename = "RFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
     def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
-        route_rIDF = self.get_route_rIDF(view, view_heading)
-        rFF = self.get_rFF(route_rIDF)
+        route_rFF = self.get_route_rFF(view, view_heading)
 
-        familiar_heading = self.get_most_familiar_heading(rFF)
+        familiar_heading = self.get_most_familiar_heading(route_rFF)
 
         matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
@@ -306,7 +304,7 @@ class AnalysisToolkit:
         rotated_view_downsampled = self.preprocess(rotated_view)
 
         image_difference = self.image_difference(rotated_view_downsampled, matched_route_view_downsampled)
-        view_rIDF = self.get_view_rIDF(rotated_view, matched_route_view, familiar_heading)
+        view_rFF = self.get_view_rFF(rotated_view, matched_route_view, familiar_heading)
 
         plt.figure(dpi=750)
         fig, ax = plt.subplots(3, 1)
@@ -323,10 +321,10 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(view_rIDF.items())))
-        plt.title(f"rIDF between given view and {matched_route_view_filename}\n"
-                  f"Confidence: {round(self.get_signal_strength(view_rIDF), 2)}, Minimum: {round(min(view_rIDF.values()), 2)}")
-        plt.ylabel("MSE in pixel intensities")
+        plt.plot(*zip(*sorted(rFF.items())))
+        plt.title(f"rFF\n"
+                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(min(rFF.values()), 2)}")
+        plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         plt.ylim(500, 1400)
@@ -334,7 +332,7 @@ class AnalysisToolkit:
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
         if save_data:
-            filename = "RIDF"
+            filename = "RFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
