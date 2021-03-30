@@ -33,7 +33,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.LEARNING_RATE = 0.005
 
         # Preprocess transforms
-        self.loader = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
+        self.transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
 
         # Data loading
         dataloaders = self.get_dataloaders(train_path, test_path)
@@ -59,8 +59,8 @@ class MultiLayerPerceptron(AnalysisToolkit):
                        cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     def get_dataloaders(self, train_path, test_path):
-        train_dataset = datasets.ImageFolder(train_path, transform=self.loader)
-        test_dataset = datasets.ImageFolder(test_path, transform=self.loader)
+        train_dataset = datasets.ImageFolder(train_path, transform=self.transform)
+        test_dataset = datasets.ImageFolder(test_path, transform=self.transform)
         train_dataset_indices = list(range(len(train_dataset)))
         np.random.seed(101)
         np.random.shuffle(train_dataset_indices)
@@ -71,8 +71,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 "TEST": DataLoader(test_dataset, batch_size=1, shuffle=False)}
 
     def multi_acc(self, y_pred, y_test):
-        y_pred_softmax = torch.log_softmax(y_pred, dim=1)
-        _, y_pred_tags = torch.max(y_pred_softmax, dim=1)
+        _, y_pred_tags = torch.max(torch.log_softmax(y_pred, dim=1), dim=1)
         correct_pred = (y_pred_tags == y_test).float()
         return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
@@ -154,14 +153,28 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 y_ground_truth.append(y_test_batch.cpu().numpy())
         print(classification_report(y_ground_truth, y_pred))
 
-    def get_view_rFF(self, view, view_2, view_heading=0):
+    def get_route_rFF(self, view, view_heading=0):
         view_preprocessed = self.preprocess(view)
         rFF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             view = self.rotate(view_preprocessed, i)
-            tensor = self.loader(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
             pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1, index=torch.tensor([1]).to(self.device))
+            # pos_tag_val = torch.index_select(self.model(tensor), dim=1, index=torch.tensor([1]).to(self.device))
             rFF[(i + view_heading) % self.vis_deg] = pos_tag_val.item()
+        return rFF
+
+    # Need to implement this properly - placeholder
+    def get_view_rFF(self, view_1, view_2, view_1_heading=0):
+        view_preprocessed = self.preprocess(view_1)
+        rFF = {}
+        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+            view = self.rotate(view_preprocessed, i)
+            tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1,
+                                             index=torch.tensor([1]).to(self.device))
+            # pos_tag_val = torch.index_select(self.model(tensor), dim=1, index=torch.tensor([1]).to(self.device))
+            rFF[(i + view_1_heading) % self.vis_deg] = pos_tag_val.item()
         return rFF
 
     # Get the most familiar heading given an rIDF for a view
@@ -171,6 +184,10 @@ class MultiLayerPerceptron(AnalysisToolkit):
     # Calculates the signal strength of an rFF
     def get_signal_strength(self, rFF):
         return max(rFF.values()) / np.array(list(rFF.values())).mean()
+
+    # Need to implement this properly - placeholder
+    def get_matched_route_view_idx(self, view, view_heading=0):
+        return 0
 
 
 class Model(nn.Module):
@@ -199,14 +216,22 @@ if __name__ == '__main__':
 
     # mlp.test_model(model)
 
+    # Database analysis
+    # mlp.database_analysis(spacing=20, save_data=True)
+    # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
+    mlp.database_analysis(spacing=20, corridor=30, save_data=False)
+
     # Off-route view analysis
-    filename = mlp.grid_filenames.get((500, 500))
-    grid_view = cv2.imread(mlp.grid_path + filename)
-    mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+    # filename = mlp.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(mlp.grid_path + filename)
+    # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
-    # idx = 405
-    # filename = pm.route_filenames[idx]
-    # route_view = cv2.imread(pm.route_path + filename)
-    # route_heading = pm.route_headings[idx]
+    # idx = 0
+    # filename = mlp.route_filenames[idx]
+    # route_view = cv2.imread(mlp.route_path + filename)
+    # route_heading = mlp.route_headings[idx]
     # pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
+    # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
+    # mlp.rFF_plot(rFF=rFF,title="rFF", ylim=None, save_data=False)
+    # print(mlp.get_most_familiar_heading(rFF))

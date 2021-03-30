@@ -66,6 +66,23 @@ class AnalysisToolkit:
         except IOError:
             print("I/O error")
 
+    def rFF_plot(self, rFF, title, ylim=None, save_data=False):
+        plt.plot(*zip(*sorted(rFF.items())))
+        plt.title(f"{title}\n"
+                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(max(rFF.values()), 2)}")
+        plt.ylabel("Familiarity score")
+        plt.xlabel("Angle")
+        plt.xticks(np.arange(0, 361, 15), rotation=90)
+        if ylim is not None:
+            plt.ylim = ylim
+        plt.xlim(0, 360)
+        plt.grid(which='major', axis='both', linestyle=':')
+        plt.tight_layout()
+        if save_data:
+            filename = "RFF"
+            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+        plt.show()
+
     def database_analysis(self, spacing, bounds=None, corridor=None, save_data=False):
         if bounds is None:
             bounds = self.bounds
@@ -90,12 +107,12 @@ class AnalysisToolkit:
             rFF = self.get_route_rFF(view)
             familiar_heading = self.get_most_familiar_heading(rFF)
 
-            matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
+            matched_route_view_idx = self.get_matched_route_view_idx(view)
             quiver_map.append(line_map[matched_route_view_idx])
 
             data.append({"X_COOR": x, "Y_COOR": y, "HEADING": familiar_heading, "MATCHED_ROUTE_VIEW_IDX": matched_route_view_idx})
 
-        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)), dpi=750)
+        fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
@@ -155,18 +172,6 @@ class AnalysisToolkit:
             total_count += 1
         return (correct_count/total_count)*100
 
-    def plot_ANN_data(self, data, title, save_data=False):
-        plt.plot(data['train'])
-        plt.plot(data['val'])
-        plt.title(title)
-        plt.ylabel("value")
-        plt.xlabel("epochs")
-        if save_data:
-            filename = ''
-            self.save_plot(plt, "ANN_DATA/", filename)
-        plt.show()
-
-
     def error_boxplot(self, data_paths, index_titles=None, save_data=False):
         heading_errors = []
         indexes = []
@@ -224,20 +229,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(rFF.items())))
-        plt.title(f"rFF\n"
-                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(max(rFF.values()), 2)}")
-        plt.ylabel("Familiarity score")
-        plt.xlabel("Angle")
-        plt.xticks(np.arange(0, 361, 15), rotation=90)
-        # plt.ylim(500, 1400)
-        plt.xlim(0, 360)
-        plt.grid(which='major', axis='both', linestyle=':')
-        plt.tight_layout()
-        if save_data:
-            filename = "RFF"
-            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
-        plt.show()
+        self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
     def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
@@ -273,20 +265,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(rFF.items())))
-        plt.title(f"rFF\n"
-                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(min(rFF.values()), 2)}")
-        plt.ylabel("Familiarity score")
-        plt.xlabel("Angle")
-        plt.xticks(np.arange(0, 361, 15), rotation=90)
-        plt.ylim(500, 1400)
-        plt.xlim(0, 360)
-        plt.grid(which='major', axis='both', linestyle=':')
-        plt.tight_layout()
-        if save_data:
-            filename = "RFF"
-            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
-        plt.show()
+        self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
     def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
@@ -321,20 +300,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        plt.plot(*zip(*sorted(rFF.items())))
-        plt.title(f"rFF\n"
-                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(min(rFF.values()), 2)}")
-        plt.ylabel("Familiarity score")
-        plt.xlabel("Angle")
-        plt.xticks(np.arange(0, 361, 15), rotation=90)
-        plt.ylim(500, 1400)
-        plt.xlim(0, 360)
-        plt.grid(which='major', axis='both', linestyle=':')
-        plt.tight_layout()
-        if save_data:
-            filename = "RFF"
-            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
-        plt.show()
+        self.rFF_plot(rFF=view_rFF, title="rFF", ylim=None, save_data=save_data)
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, 20, dtype=int)
         y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -20, dtype=int)
