@@ -27,10 +27,10 @@ class MultiLayerPerceptron(AnalysisToolkit):
         # MLP hyper-parameters
         self.INPUT_SIZE = 360
         self.HIDDEN_SIZES = [(360, 360)]
-        self.TRAIN_VAL_SPLIT = 0.2
+        self.TRAIN_VAL_SPLIT = 0.4
         self.EPOCHS = 50
         self.BATCH_SIZE = 32
-        self.LEARNING_RATE = 0.005
+        self.LEARNING_RATE = 0.001
 
         # Preprocess transforms
         self.transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
@@ -41,7 +41,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.valloader = dataloaders['VAL']
         self.testloader = dataloaders['TEST']
 
-    def gen_data(self, angle, train_val_split=0.2):
+    def gen_data(self, angle, splt=0.2):
         print('Generating data...')
         dp = []
         for filename in probar(self.route_filenames):
@@ -50,12 +50,12 @@ class MultiLayerPerceptron(AnalysisToolkit):
             dp.append([f'{filename.strip(".png")}_{angle}', self.rotate(view, angle), 0])
             dp.append([f'{filename.strip(".png")}_-{angle}', self.rotate(view, -angle), 0])
         df = pd.DataFrame(dp, columns=['FILENAME', 'VIEW', 'LABEL'])
-        train, test = train_test_split(df, test_size=train_val_split, random_state=0)
+        train, test = train_test_split(df, test_size=splt)
         for filename, view, label in train.values:
-            plt.imsave(f"./ANN_DATA/{angle}_DEGREES/TRAIN/{label}/{filename}.png",
+            plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
                        cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         for filename, view, label in test.values:
-            plt.imsave(f"./ANN_DATA/{angle}_DEGREES/TEST/{label}/{filename}.png",
+            plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TEST/{label}/{filename}.png",
                        cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     def get_dataloaders(self, train_path, test_path):
@@ -66,9 +66,9 @@ class MultiLayerPerceptron(AnalysisToolkit):
         np.random.shuffle(train_dataset_indices)
         train_sampler = SubsetRandomSampler(train_dataset_indices[int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset))):])
         val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
-        return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, shuffle=False, drop_last=True),
-                "VAL": DataLoader(train_dataset, batch_size=1, sampler=val_sampler, shuffle=False),
-                "TEST": DataLoader(test_dataset, batch_size=1, shuffle=False)}
+        return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, drop_last=True),
+                "VAL": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=val_sampler, drop_last=True),
+                "TEST": DataLoader(test_dataset, batch_size=self.BATCH_SIZE, drop_last=True)}
 
     def multi_acc(self, y_pred, y_test):
         _, y_pred_tags = torch.max(torch.log_softmax(y_pred, dim=1), dim=1)
@@ -139,6 +139,9 @@ class MultiLayerPerceptron(AnalysisToolkit):
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
         self.model = model
+        self.route_view_logits = [self.model(self.transform(Image.fromarray(self.preprocess(cv2.imread(self.route_path + filename)))).float().to(self.device).view(1, self.INPUT_SIZE))
+                                  for filename in self.route_filenames]
+        print(self.route_view_logits)
 
     def test_model(self, model):
         y_pred, y_ground_truth = [], []
@@ -187,15 +190,12 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
     # Need to implement this properly - placeholder
     def get_matched_route_view_idx(self, view, view_heading=0):
-        x = {}
-        for i, route_view in enumerate(self.route_views):
-            view_tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
-            route_view_tensor = self.transform(Image.fromarray(route_view)).float().to(self.device).view(1, self.INPUT_SIZE)
-            x[(i + view_heading) % self.vis_deg] = torch.cdist(torch.log_softmax(self.model(route_view_tensor), dim=1),
-                                                               torch.log_softmax(self.model(view_tensor), dim=1), p=2)
+        view_preprocessed = self.preprocess(self.rotate(view, view_heading))
+        view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
+        # cos = nn.CosineSimilarity(dim=1, eps=1e-6)
+        # x = {i: cos(self.route_view_logits[i], self.model(view_tensor)) for i in range(len(self.route_view_logits))}
+        x = {i: torch.cdist(self.route_view_logits[i], self.model(view_tensor)) for i in range(len(self.route_view_logits))}
         return min(x, key=x.get)
-
-
 
 class Model(nn.Module):
     def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
@@ -217,26 +217,35 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
-                               train_path="ANN_DATA/60_DEGREES_DATA/TRAIN", test_path="ANN_DATA/60_DEGREES_DATA/TEST")
-    # mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_60_DEGREES_DATA", save_model=True)
-    mlp.load_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
+                               train_path="ANN_DATA/45_DEGREES_DATA/TRAIN", test_path="ANN_DATA/45_DEGREES_DATA/TEST")
+    # mlp.gen_data(45)
+    mlp.train_model(save_path="MLP_MODELS/TRAINED_ON_45_DEGREES_DATA", save_model=True)
+    # mlp.load_model("MLP_MODELS/TRAINED_ON_45_DEGREES_DATA/dulcet-field-48.pth")
 
     # mlp.test_model(model)
 
     # Database analysis
-    mlp.database_analysis(spacing=20, save_data=False)
+    # mlp.database_analysis(spacing=20, save_data=False)
     # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # mlp.database_analysis(spacing=20, corridor=30, save_data=False)
+    # mlp.database_analysis(spacing=20, corridor=30, save_data=True)
+
+    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/30-3-2021_22-52-10_ant1_route1_140x740_20.csv"],
+    #                   ["MLP within route corridor"], save_data=False)
 
     # Off-route view analysis
-    # grid_view = mlp.grid_views.get((500, 500))
+    # filename = mlp.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(mlp.grid_path+filename)
     # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
-    # idx = 0
-    # route_view = mlp.route_views[idx]
+    # idx = 400
+    # route_view = cv2.imread(mlp.route_path+mlp.route_filenames[idx])
     # route_heading = mlp.route_headings[idx]
-    # pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
+    # mlp.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
+
     # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
     # mlp.rFF_plot(rFF=rFF,title="rFF", ylim=None, save_data=False)
     # print(mlp.get_most_familiar_heading(rFF))
+
+    # Off-route best matched view analysis
+    # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)

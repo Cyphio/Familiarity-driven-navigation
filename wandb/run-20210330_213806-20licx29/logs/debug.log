@@ -1,0 +1,49 @@
+2021-03-30 21:38:06,306 INFO    MainThread:18412 [wandb_setup.py:_flush():69] setting env: {}
+2021-03-30 21:38:06,306 INFO    MainThread:18412 [wandb_setup.py:_flush():69] setting login settings: {}
+2021-03-30 21:38:06,307 INFO    MainThread:18412 [wandb_init.py:_log_setup():336] Logging user logs to C:\Users\harry\PycharmProjects\RouteNavigation\wandb\run-20210330_213806-20licx29\logs\debug.log
+2021-03-30 21:38:06,308 INFO    MainThread:18412 [wandb_init.py:_log_setup():337] Logging internal logs to C:\Users\harry\PycharmProjects\RouteNavigation\wandb\run-20210330_213806-20licx29\logs\debug-internal.log
+2021-03-30 21:38:06,310 INFO    MainThread:18412 [wandb_init.py:init():369] calling init triggers
+2021-03-30 21:38:06,310 INFO    MainThread:18412 [wandb_init.py:init():374] wandb.init called with sweep_config: {}
+config: {}
+2021-03-30 21:38:06,312 INFO    MainThread:18412 [wandb_init.py:init():418] starting backend
+2021-03-30 21:38:06,312 INFO    MainThread:18412 [backend.py:_multiprocessing_setup():69] multiprocessing start_methods=spawn, using: spawn
+2021-03-30 21:38:06,321 INFO    MainThread:18412 [backend.py:ensure_launched():123] starting backend process...
+2021-03-30 21:38:06,717 INFO    MainThread:18412 [backend.py:ensure_launched():127] started backend process with pid: 17152
+2021-03-30 21:38:06,717 INFO    MainThread:18412 [wandb_init.py:init():423] backend started and connected
+2021-03-30 21:38:06,719 INFO    MainThread:18412 [wandb_init.py:init():463] updated telemetry
+2021-03-30 21:38:06,720 INFO    MainThread:18412 [wandb_init.py:init():482] communicating current version
+2021-03-30 21:38:08,115 INFO    MainThread:18412 [wandb_init.py:init():487] got version response 
+2021-03-30 21:38:08,115 INFO    MainThread:18412 [wandb_init.py:init():495] communicating run to backend with 30 second timeout
+2021-03-30 21:38:08,568 INFO    MainThread:18412 [wandb_init.py:init():520] starting run threads in backend
+2021-03-30 21:38:13,588 INFO    MainThread:18412 [wandb_run.py:_console_start():1507] atexit reg
+2021-03-30 21:38:13,589 INFO    MainThread:18412 [wandb_run.py:_redirect():1370] redirect: SettingsConsole.WRAP
+2021-03-30 21:38:13,591 INFO    MainThread:18412 [wandb_run.py:_redirect():1405] Wrapping output streams.
+2021-03-30 21:38:13,591 INFO    MainThread:18412 [wandb_run.py:_redirect():1421] Redirects installed.
+2021-03-30 21:38:13,591 INFO    MainThread:18412 [wandb_init.py:init():544] run started, returning control to user process
+2021-03-30 21:38:18,450 INFO    MainThread:18412 [wandb_watch.py:watch():39] Watching
+2021-03-30 21:41:46,010 INFO    MainThread:18412 [wandb_run.py:_atexit_cleanup():1477] got exitcode: 0
+2021-03-30 21:41:46,030 INFO    MainThread:18412 [wandb_run.py:_restore():1449] restore
+2021-03-30 21:41:46,463 INFO    MainThread:18412 [wandb_run.py:_wait_for_finish():1599] got exit ret: file_counts {
+  wandb_count: 1
+  media_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 1709
+  total_bytes: 1709
+}
+
+2021-03-30 21:41:48,486 INFO    MainThread:18412 [wandb_run.py:_wait_for_finish():1599] got exit ret: done: true
+exit_result {
+}
+file_counts {
+  wandb_count: 5
+  media_count: 1
+}
+pusher_stats {
+  uploaded_bytes: 24856
+  total_bytes: 24856
+}
+
+2021-03-30 21:41:50,465 INFO    MainThread:18412 [wandb_run.py:_show_summary():1754] rendering summary
+2021-03-30 21:41:50,468 INFO    MainThread:18412 [wandb_run.py:_show_history():1792] rendering history
+2021-03-30 21:41:50,470 INFO    MainThread:18412 [wandb_run.py:_show_files():1821] logging synced files

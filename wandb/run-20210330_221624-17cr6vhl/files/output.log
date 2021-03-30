@@ -1,0 +1,66 @@
+Beginning training
+C:\Users\harry\anaconda3\envs\ML38\lib\site-packages\torch\nn\modules\module.py:795: UserWarning: Using a non-full backward hook when the forward contains multiple autograd Nodes is deprecated and will be removed in future versions. This hook will be missing some grad_input. Please use register_full_backward_hook to get the documented behavior.
+  warnings.warn("Using a non-full backward hook when the forward contains multiple autograd Nodes "
+Epoch 01: | Train Loss: 0.64543 | Val Loss: 0.63187 | Train Acc: 65.722 | Val Acc: 66.542
+Epoch 02: | Train Loss: 0.63328 | Val Loss: 0.62402 | Train Acc: 66.333 | Val Acc: 66.625
+Epoch 03: | Train Loss: 0.62401 | Val Loss: 0.61206 | Train Acc: 66.556 | Val Acc: 66.708
+Epoch 04: | Train Loss: 0.59314 | Val Loss: 0.54048 | Train Acc: 67.361 | Val Acc: 67.167
+Epoch 05: | Train Loss: 0.51731 | Val Loss: 0.43373 | Train Acc: 72.944 | Val Acc: 74.000
+Epoch 06: | Train Loss: 0.43416 | Val Loss: 0.35644 | Train Acc: 78.611 | Val Acc: 86.500
+Epoch 07: | Train Loss: 0.40294 | Val Loss: 0.32413 | Train Acc: 81.111 | Val Acc: 87.333
+Epoch 08: | Train Loss: 0.36168 | Val Loss: 0.33042 | Train Acc: 82.306 | Val Acc: 87.250
+Epoch 09: | Train Loss: 0.37374 | Val Loss: 0.31092 | Train Acc: 81.333 | Val Acc: 89.000
+Epoch 10: | Train Loss: 0.30115 | Val Loss: 0.27502 | Train Acc: 87.000 | Val Acc: 88.208
+Epoch 11: | Train Loss: 0.31691 | Val Loss: 0.31849 | Train Acc: 86.111 | Val Acc: 86.458
+Epoch 12: | Train Loss: 0.32166 | Val Loss: 0.26037 | Train Acc: 85.417 | Val Acc: 90.583
+Epoch 13: | Train Loss: 0.26079 | Val Loss: 0.33261 | Train Acc: 89.222 | Val Acc: 84.792
+Epoch 14: | Train Loss: 0.28701 | Val Loss: 0.45831 | Train Acc: 87.417 | Val Acc: 79.083
+Epoch 15: | Train Loss: 0.29642 | Val Loss: 0.28554 | Train Acc: 86.861 | Val Acc: 88.667
+Epoch 16: | Train Loss: 0.29409 | Val Loss: 0.26963 | Train Acc: 87.639 | Val Acc: 87.667
+Epoch 17: | Train Loss: 0.29565 | Val Loss: 0.24630 | Train Acc: 86.833 | Val Acc: 90.875
+Epoch 18: | Train Loss: 0.25207 | Val Loss: 0.24631 | Train Acc: 89.722 | Val Acc: 89.208
+Epoch 19: | Train Loss: 0.24943 | Val Loss: 0.35418 | Train Acc: 89.722 | Val Acc: 83.792
+Epoch 20: | Train Loss: 0.26714 | Val Loss: 0.23861 | Train Acc: 88.639 | Val Acc: 89.625
+Epoch 21: | Train Loss: 0.22220 | Val Loss: 0.29420 | Train Acc: 90.694 | Val Acc: 86.500
+Epoch 22: | Train Loss: 0.24482 | Val Loss: 0.23454 | Train Acc: 89.667 | Val Acc: 90.167
+Epoch 23: | Train Loss: 0.22514 | Val Loss: 0.22939 | Train Acc: 90.944 | Val Acc: 90.458
+Epoch 24: | Train Loss: 0.35820 | Val Loss: 0.25192 | Train Acc: 84.639 | Val Acc: 89.333
+Epoch 25: | Train Loss: 0.23032 | Val Loss: 0.23910 | Train Acc: 89.889 | Val Acc: 90.167
+Epoch 26: | Train Loss: 0.22274 | Val Loss: 0.23098 | Train Acc: 90.750 | Val Acc: 90.458
+Epoch 27: | Train Loss: 0.21342 | Val Loss: 0.24551 | Train Acc: 91.056 | Val Acc: 89.875
+Epoch 28: | Train Loss: 0.21900 | Val Loss: 0.22450 | Train Acc: 91.444 | Val Acc: 90.542
+Epoch 29: | Train Loss: 0.22463 | Val Loss: 0.26352 | Train Acc: 90.917 | Val Acc: 88.958
+Epoch 30: | Train Loss: 0.21625 | Val Loss: 0.24068 | Train Acc: 91.500 | Val Acc: 89.875
+Epoch 31: | Train Loss: 0.20422 | Val Loss: 0.31450 | Train Acc: 92.306 | Val Acc: 85.333
+Epoch 32: | Train Loss: 0.31002 | Val Loss: 0.31863 | Train Acc: 86.028 | Val Acc: 85.333
+Epoch 33: | Train Loss: 0.25831 | Val Loss: 0.28662 | Train Acc: 89.056 | Val Acc: 87.208
+Epoch 34: | Train Loss: 0.20702 | Val Loss: 0.27247 | Train Acc: 91.528 | Val Acc: 87.667
+Epoch 35: | Train Loss: 0.25022 | Val Loss: 0.22702 | Train Acc: 89.611 | Val Acc: 90.708
+Epoch 36: | Train Loss: 0.25794 | Val Loss: 0.24918 | Train Acc: 89.750 | Val Acc: 89.750
+Epoch 37: | Train Loss: 0.22601 | Val Loss: 0.25077 | Train Acc: 90.222 | Val Acc: 88.458
+Epoch 38: | Train Loss: 0.22084 | Val Loss: 0.24099 | Train Acc: 91.722 | Val Acc: 89.417
+Epoch 39: | Train Loss: 0.23412 | Val Loss: 0.23506 | Train Acc: 90.278 | Val Acc: 89.750
+Epoch 40: | Train Loss: 0.25236 | Val Loss: 0.23428 | Train Acc: 89.833 | Val Acc: 90.750
+Epoch 41: | Train Loss: 0.21850 | Val Loss: 0.22936 | Train Acc: 91.222 | Val Acc: 90.542
+Epoch 42: | Train Loss: 0.19546 | Val Loss: 0.35120 | Train Acc: 92.528 | Val Acc: 83.875
+Epoch 43: | Train Loss: 0.23802 | Val Loss: 0.23131 | Train Acc: 89.444 | Val Acc: 90.208
+Epoch 44: | Train Loss: 0.17711 | Val Loss: 0.25806 | Train Acc: 92.528 | Val Acc: 87.833
+Epoch 45: | Train Loss: 0.21467 | Val Loss: 0.21756 | Train Acc: 90.806 | Val Acc: 90.792
+Epoch 46: | Train Loss: 0.17167 | Val Loss: 0.26744 | Train Acc: 93.972 | Val Acc: 87.542
+Epoch 47: | Train Loss: 0.18058 | Val Loss: 0.27139 | Train Acc: 92.250 | Val Acc: 89.458
+Epoch 48: | Train Loss: 0.29598 | Val Loss: 0.36603 | Train Acc: 87.472 | Val Acc: 82.625
+Epoch 49: | Train Loss: 0.23023 | Val Loss: 0.38888 | Train Acc: 90.167 | Val Acc: 84.167
+Epoch 50: | Train Loss: 0.27981 | Val Loss: 0.45291 | Train Acc: 88.361 | Val Acc: 79.542
+Finished Training
+Traceback (most recent call last):
+  File "C:/Users/harry/PycharmProjects/RouteNavigation/MultiLayerPerceptron.py", line 223, in <module>
+    mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_45_DEGREES_DATA", save_model=True)
+  File "C:/Users/harry/PycharmProjects/RouteNavigation/MultiLayerPerceptron.py", line 135, in train_model
+    torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
+  File "C:\Users\harry\anaconda3\envs\ML38\lib\site-packages\torch\serialization.py", line 369, in save
+    with _open_file_like(f, 'wb') as opened_file:
+  File "C:\Users\harry\anaconda3\envs\ML38\lib\site-packages\torch\serialization.py", line 230, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "C:\Users\harry\anaconda3\envs\ML38\lib\site-packages\torch\serialization.py", line 211, in __init__
+    super(_open_file, self).__init__(open(name, mode))
+FileNotFoundError: [Errno 2] No such file or directory: 'MLP_MODELS/TRAINED_ON_45_DEGREES_DATA/solar-flower-47.pth'
