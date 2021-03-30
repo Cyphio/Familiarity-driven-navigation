@@ -16,19 +16,25 @@ class AnalysisToolkit:
         self.rot_deg = rot_deg
 
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
+
         self.grid_path = "ant_world_image_databases/grid/"
         grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace=True)
         self.grid_X = [int(x/10) for x in np.array(grid_data['X [mm]'])]
         self.grid_Y = [int(y/10) for y in np.array(grid_data['Y [mm]'])]
         self.grid_filenames = {(int(grid_data['X [mm]'][idx]/10), int(grid_data['Y [mm]'][idx]/10)): filename
                                for idx, filename in enumerate(grid_data['Filename'])}
+        print("READING IN GRID VIEWS")
+        self.grid_views = {(int(grid_data['X [mm]'][idx]/10), int(grid_data['Y [mm]'][idx]/10)): cv2.imread(self.grid_path+filename)
+                           for idx, filename in enumerate(probar(grid_data['Filename']))}
 
         self.route_path = "ant_world_image_databases/routes/"+route+"/"
         route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace=True)
-        self.route_filenames = np.array(route_data['Filename'])
         self.route_X = [int(x/10) for x in np.array(route_data['X [mm]'])]
         self.route_Y = [int(y/10) for y in np.array(route_data["Y [mm]"])]
+        self.route_filenames = np.array(route_data['Filename'])
         self.route_headings = np.array([int(rot_deg * round(float(heading)/rot_deg)) for heading in route_data['Heading [degrees]']])
+        print("READING IN ROUTE VIEWS")
+        self.route_views = [cv2.imread(self.route_path + filename) for filename in probar(self.route_filenames)]
 
         self.bounds = [[int((np.floor((min(self.route_X) / 10)) * 10)), int((np.floor((min(self.route_Y) / 10)) * 10))],
                         [int((np.ceil((max(self.route_X) / 10)) * 10)), int((np.ceil((max(self.route_Y) / 10)) * 10))]]
@@ -102,7 +108,7 @@ class AnalysisToolkit:
 
         data = []
         for x, y in probar(quiver_coors):
-            view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+            view = self.grid_views.get((x, y))
 
             rFF = self.get_route_rFF(view)
             familiar_heading = self.get_most_familiar_heading(rFF)
@@ -232,7 +238,7 @@ class AnalysisToolkit:
         self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
     def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
-        view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
+        view = self.grid_views.get((view_x, view_y))
 
         ground_truth_view_coor = self.get_ground_truth_coor(view_x, view_y)
         ground_truth_view_idx = list(zip(self.route_X, self.route_Y)).index(ground_truth_view_coor)
@@ -268,7 +274,7 @@ class AnalysisToolkit:
         self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
     def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
-        view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
+        view = self.grid_views.get((view_x,view_y))
         route_rFF = self.get_route_rFF(view, view_heading)
 
         familiar_heading = self.get_most_familiar_heading(route_rFF)

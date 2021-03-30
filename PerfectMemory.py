@@ -48,8 +48,8 @@ class PerfectMemory(AnalysisToolkit):
 
     # get the index of the best matching route view to a view given an rIDF for that view
     def get_matched_route_view_idx(self, view, view_heading=0):
-        min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in self.get_route_rIDF(view, view_heading).items()}
-        return min(min_RIDF_idx.values())[1]
+        min_rIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in self.get_route_rIDF(view, view_heading).items()}
+        return min(min_rIDF_idx.values())[1]
 
 if __name__ == "__main__":
     pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
@@ -75,14 +75,12 @@ if __name__ == "__main__":
     # pm.route_analysis(step=100)
 
     # Off-route view analysis
-    # filename = pm.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(pm.grid_path + filename)
+    grid_view = pm.grid_views.get((500, 500))
     # pm.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
     idx = 0
-    filename = pm.route_filenames[idx]
-    route_view = cv2.imread(pm.route_path + filename)
+    route_view = pm.route_views[idx]
     route_heading = pm.route_headings[idx]
     # pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
     rFF = pm.get_route_rFF(view=route_view, view_heading=route_heading)

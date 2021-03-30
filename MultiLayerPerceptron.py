@@ -187,7 +187,14 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
     # Need to implement this properly - placeholder
     def get_matched_route_view_idx(self, view, view_heading=0):
-        return 0
+        x = {}
+        for i, route_view in enumerate(self.route_views):
+            view_tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            route_view_tensor = self.transform(Image.fromarray(route_view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            x[(i + view_heading) % self.vis_deg] = torch.cdist(torch.log_softmax(self.model(route_view_tensor), dim=1),
+                                                               torch.log_softmax(self.model(view_tensor), dim=1), p=2)
+        return min(x, key=x.get)
+
 
 
 class Model(nn.Module):
@@ -217,19 +224,17 @@ if __name__ == '__main__':
     # mlp.test_model(model)
 
     # Database analysis
-    # mlp.database_analysis(spacing=20, save_data=True)
+    mlp.database_analysis(spacing=20, save_data=False)
     # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    mlp.database_analysis(spacing=20, corridor=30, save_data=False)
+    # mlp.database_analysis(spacing=20, corridor=30, save_data=False)
 
     # Off-route view analysis
-    # filename = mlp.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(mlp.grid_path + filename)
+    # grid_view = mlp.grid_views.get((500, 500))
     # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
     # On-route view analysis
     # idx = 0
-    # filename = mlp.route_filenames[idx]
-    # route_view = cv2.imread(mlp.route_path + filename)
+    # route_view = mlp.route_views[idx]
     # route_heading = mlp.route_headings[idx]
     # pm.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
     # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
