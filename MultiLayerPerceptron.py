@@ -41,6 +41,8 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.valloader = dataloaders['VAL']
         self.testloader = dataloaders['TEST']
 
+        self.route_view_layton_spaces = []
+
     def gen_data(self, angle, splt=0.2):
         print('Generating data...')
         dp = []
@@ -68,7 +70,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
         return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, drop_last=True),
                 "VAL": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=val_sampler, drop_last=True),
-                "TEST": DataLoader(test_dataset, batch_size=self.BATCH_SIZE, drop_last=True)}
+                "TEST": DataLoader(test_dataset, batch_size=1)}
 
     def multi_acc(self, y_pred, y_test):
         _, y_pred_tags = torch.max(torch.log_softmax(y_pred, dim=1), dim=1)
@@ -139,17 +141,20 @@ class MultiLayerPerceptron(AnalysisToolkit):
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
         self.model = model
-        self.route_view_logits = [self.model(self.transform(Image.fromarray(self.preprocess(cv2.imread(self.route_path + filename)))).float().to(self.device).view(1, self.INPUT_SIZE))
-                                  for filename in self.route_filenames]
-        print(self.route_view_logits)
+        self.model.fc_hidden[-1].register_forward_hook(self.hook_fn)
+        [self.model(self.transform(Image.fromarray(self.preprocess(cv2.imread(self.route_path + filename)))).float().to(self.device).view(1, self.INPUT_SIZE)) for filename in self.route_filenames]
+        print(self.route_view_layton_spaces)
 
-    def test_model(self, model):
+    def hook_fn(self, module, input, output):
+        self.route_view_layton_spaces.append(output)
+
+    def test_model(self):
         y_pred, y_ground_truth = [], []
         with torch.no_grad():
             for X_test_batch, y_test_batch in self.testloader:
                 X_test_batch, y_test_batch = X_test_batch.to(self.device), y_test_batch.to(self.device)
 
-                y_test_pred = model(X_test_batch)
+                y_test_pred = self.model(X_test_batch)
                 _, y_pred_tag = torch.max(y_test_pred, dim=1)
 
                 y_pred.append(y_pred_tag.cpu().numpy())
@@ -194,7 +199,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
         # cos = nn.CosineSimilarity(dim=1, eps=1e-6)
         # x = {i: cos(self.route_view_logits[i], self.model(view_tensor)) for i in range(len(self.route_view_logits))}
-        x = {i: torch.cdist(self.route_view_logits[i], self.model(view_tensor)) for i in range(len(self.route_view_logits))}
+        x = {i: torch.cdist(self.route_view_layton_spaces[i], self.model(view_tensor)) for i in range(len(self.route_view_layton_spaces))}
         return min(x, key=x.get)
 
 class Model(nn.Module):
@@ -217,20 +222,23 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
-                               train_path="ANN_DATA/45_DEGREES_DATA/TRAIN", test_path="ANN_DATA/45_DEGREES_DATA/TEST")
-    # mlp.gen_data(45)
-    mlp.train_model(save_path="MLP_MODELS/TRAINED_ON_45_DEGREES_DATA", save_model=True)
-    # mlp.load_model("MLP_MODELS/TRAINED_ON_45_DEGREES_DATA/dulcet-field-48.pth")
+                               train_path="ANN_DATA/90_DEGREES_DATA/TRAIN", test_path="ANN_DATA/90_DEGREES_DATA/TEST")
+    # mlp.gen_data(90)
+    # mlp.train_model(save_path="MLP_MODELS/TRAINED_ON_90_DEGREES_DATA", save_model=True)
+    mlp.load_model("MLP_MODELS/TRAINED_ON_90_DEGREES_DATA/chocolate-dust-55.pth")
 
-    # mlp.test_model(model)
+    # mlp.test_model()
 
     # Database analysis
-    # mlp.database_analysis(spacing=20, save_data=False)
+    # mlp.database_analysis(spacing=20, save_data=True)
     # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # mlp.database_analysis(spacing=20, corridor=30, save_data=True)
 
-    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/30-3-2021_22-52-10_ant1_route1_140x740_20.csv"],
-    #                   ["MLP within route corridor"], save_data=False)
+    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/TRAINED_ON_45_DEGREES_DATA/31-3-2021_11-15-4_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_60_DEGREES_DATA/31-3-2021_11-12-14_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_90_DEGREES_DATA/31-3-2021_11-9-50_ant1_route1_140x740_20.csv"],
+    #                   ["MLP trained on 45 degree data", "MLP trained on 60 degree data", "MLP trained on 90 degree data"],
+    #                   save_data=False)
 
     # Off-route view analysis
     # filename = mlp.grid_filenames.get((500, 500))

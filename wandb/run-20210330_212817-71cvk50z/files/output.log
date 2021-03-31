@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "C:/Users/harry/PycharmProjects/RouteNavigation/MultiLayerPerceptron.py", line 222, in <module>
-    mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_60_DEGREES_DATA", save_model=True)
-  File "C:/Users/harry/PycharmProjects/RouteNavigation/MultiLayerPerceptron.py", line 81, in train_model
-    model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
-  File "C:/Users/harry/PycharmProjects/RouteNavigation/MultiLayerPerceptron.py", line 206, in __init__
-    self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0][0])
-IndexError: list index out of range
