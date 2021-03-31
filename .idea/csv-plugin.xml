@@ -38,6 +38,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\31-3-2021_17-38-14_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\31-3-2021_19-39-15_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\31-3-2021_19-41-28_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\16_deg_px_res\16-3-2021_18-58-18_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>
@@ -46,6 +67,13 @@
           </value>
         </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\28-2-2021_15-45-13_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\31-3-2021_18-23-11_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />

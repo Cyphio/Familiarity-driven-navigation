@@ -14,6 +14,7 @@ from torch.utils.data import SubsetRandomSampler
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import wandb
+import os
 
 class MultiLayerPerceptron(AnalysisToolkit):
 
@@ -41,7 +42,8 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.valloader = dataloaders['VAL']
         self.testloader = dataloaders['TEST']
 
-        self.route_view_layton_spaces = []
+        self.model = None
+        self.route_view_layton_spaces = None
 
     def gen_data(self, angle, splt=0.2):
         print('Generating data...')
@@ -53,12 +55,18 @@ class MultiLayerPerceptron(AnalysisToolkit):
             dp.append([f'{filename.strip(".png")}_-{angle}', self.rotate(view, -angle), 0])
         df = pd.DataFrame(dp, columns=['FILENAME', 'VIEW', 'LABEL'])
         train, test = train_test_split(df, test_size=splt)
-        for filename, view, label in train.values:
-            plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
-                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        for filename, view, label in test.values:
-            plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TEST/{label}/{filename}.png",
-                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        try:
+            for parent in ["TRAIN", "TEST"]:
+                for child in ["0", "1"]:
+                    os.makedirs(f"./ANN_DATA/{angle}_DEGREES_DATA/{parent}/{child}")
+            for filename, view, label in test.values:
+                plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TEST/{label}/{filename}.png",
+                           cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+            for filename, view, label in train.values:
+                plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
+                           cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        except OSError:
+            print("Failed to create directory")
 
     def get_dataloaders(self, train_path, test_path):
         train_dataset = datasets.ImageFolder(train_path, transform=self.transform)
@@ -137,16 +145,16 @@ class MultiLayerPerceptron(AnalysisToolkit):
             torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
 
     def load_model(self, model_path):
+        print("Loading model...")
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
         self.model = model
-        self.model.fc_hidden[-1].register_forward_hook(self.hook_fn)
-        [self.model(self.transform(Image.fromarray(self.preprocess(cv2.imread(self.route_path + filename)))).float().to(self.device).view(1, self.INPUT_SIZE)) for filename in self.route_filenames]
-        print(self.route_view_layton_spaces)
-
-    def hook_fn(self, module, input, output):
-        self.route_view_layton_spaces.append(output)
+        print("Calculating training route view latent spaces...")
+        self.route_view_layton_spaces = []
+        for filename in probar(self.route_filenames):
+            self.model(self.transform(Image.fromarray(self.preprocess(cv2.imread(self.route_path + filename)))).float().to(self.device).view(1, self.INPUT_SIZE))
+            self.route_view_layton_spaces.append(self.model.get_latent_space())
 
     def test_model(self):
         y_pred, y_ground_truth = [], []
@@ -197,9 +205,9 @@ class MultiLayerPerceptron(AnalysisToolkit):
     def get_matched_route_view_idx(self, view, view_heading=0):
         view_preprocessed = self.preprocess(self.rotate(view, view_heading))
         view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
-        # cos = nn.CosineSimilarity(dim=1, eps=1e-6)
-        # x = {i: cos(self.route_view_logits[i], self.model(view_tensor)) for i in range(len(self.route_view_logits))}
-        x = {i: torch.cdist(self.route_view_layton_spaces[i], self.model(view_tensor)) for i in range(len(self.route_view_layton_spaces))}
+        self.model(view_tensor)
+        view_layton_space = self.model.get_latent_space()
+        x = {i: torch.cdist(self.route_view_layton_spaces[i], view_layton_space) for i in range(len(self.route_view_layton_spaces))}
         return min(x, key=x.get)
 
 class Model(nn.Module):
@@ -213,19 +221,25 @@ class Model(nn.Module):
 
         self.activation = nn.ReLU()
 
+        self.latent_space = None
+
     def forward(self, inputs):
         x = inputs.view(inputs.size(0), -1)
         x = self.activation(self.fc_input(x))
         for layer in self.fc_hidden:
             x = self.activation(layer(x))
+        self.latent_space = x
         return self.fc_output(x)
+
+    def get_latent_space(self):
+        return self.latent_space
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
                                train_path="ANN_DATA/90_DEGREES_DATA/TRAIN", test_path="ANN_DATA/90_DEGREES_DATA/TEST")
-    # mlp.gen_data(90)
+    mlp.gen_data(angle=10)
     # mlp.train_model(save_path="MLP_MODELS/TRAINED_ON_90_DEGREES_DATA", save_model=True)
-    mlp.load_model("MLP_MODELS/TRAINED_ON_90_DEGREES_DATA/chocolate-dust-55.pth")
+    # mlp.load_model("MLP_MODELS/TRAINED_ON_90_DEGREES_DATA/chocolate-dust-54.pth")
 
     # mlp.test_model()
 
@@ -234,9 +248,9 @@ if __name__ == '__main__':
     # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # mlp.database_analysis(spacing=20, corridor=30, save_data=True)
 
-    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/TRAINED_ON_45_DEGREES_DATA/31-3-2021_11-15-4_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_60_DEGREES_DATA/31-3-2021_11-12-14_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_90_DEGREES_DATA/31-3-2021_11-9-50_ant1_route1_140x740_20.csv"],
+    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/TRAINED_ON_45_DEGREES_DATA/31-3-2021_19-41-28_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_60_DEGREES_DATA/31-3-2021_19-39-15_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_90_DEGREES_DATA/31-3-2021_17-38-14_ant1_route1_140x740_20.csv"],
     #                   ["MLP trained on 45 degree data", "MLP trained on 60 degree data", "MLP trained on 90 degree data"],
     #                   save_data=False)
 
@@ -249,6 +263,7 @@ if __name__ == '__main__':
     # idx = 400
     # route_view = cv2.imread(mlp.route_path+mlp.route_filenames[idx])
     # route_heading = mlp.route_headings[idx]
+    # print(mlp.get_matched_route_view_idx(route_view))
     # mlp.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
 
     # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
