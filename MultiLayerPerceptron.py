@@ -14,6 +14,7 @@ from torch.utils.data import SubsetRandomSampler
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 import wandb
+import os
 
 class MultiLayerPerceptron(AnalysisToolkit):
 
@@ -26,14 +27,14 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
         # MLP hyper-parameters
         self.INPUT_SIZE = 360
-        self.HIDDEN_SIZES = [360, 360]
-        self.TRAIN_VAL_SPLIT = 0.2
+        self.HIDDEN_SIZES = [(360, 360)]
+        self.TRAIN_VAL_SPLIT = 0.4
         self.EPOCHS = 50
         self.BATCH_SIZE = 32
-        self.LEARNING_RATE = 0.005
+        self.LEARNING_RATE = 0.001
 
         # Preprocess transforms
-        self.loader = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
+        self.transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
 
         # Data loading
         dataloaders = self.get_dataloaders(train_path, test_path)
@@ -41,7 +42,10 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.valloader = dataloaders['VAL']
         self.testloader = dataloaders['TEST']
 
-    def gen_data(self, angle, train_val_split=0.2):
+        self.model = None
+        self.route_view_layton_spaces = None
+
+    def gen_data(self, angle, splt=0.2):
         print('Generating data...')
         dp = []
         for filename in probar(self.route_filenames):
@@ -50,29 +54,34 @@ class MultiLayerPerceptron(AnalysisToolkit):
             dp.append([f'{filename.strip(".png")}_{angle}', self.rotate(view, angle), 0])
             dp.append([f'{filename.strip(".png")}_-{angle}', self.rotate(view, -angle), 0])
         df = pd.DataFrame(dp, columns=['FILENAME', 'VIEW', 'LABEL'])
-        train, test = train_test_split(df, test_size=train_val_split, random_state=0)
-        for filename, view, label in train.values:
-            plt.imsave(f"./ANN_DATA/{angle}_DEGREES/TRAIN/{label}/{filename}.png",
-                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        for filename, view, label in test.values:
-            plt.imsave(f"./ANN_DATA/{angle}_DEGREES/TEST/{label}/{filename}.png",
-                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        train, test = train_test_split(df, test_size=splt)
+        try:
+            for parent in ["TRAIN", "TEST"]:
+                for child in ["0", "1"]:
+                    os.makedirs(f"./ANN_DATA/{angle}_DEGREES_DATA/{parent}/{child}")
+            for filename, view, label in test.values:
+                plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TEST/{label}/{filename}.png",
+                           cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+            for filename, view, label in train.values:
+                plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
+                           cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        except OSError:
+            print("Failed to create directory")
 
     def get_dataloaders(self, train_path, test_path):
-        train_dataset = datasets.ImageFolder(train_path, transform=self.loader)
-        test_dataset = datasets.ImageFolder(test_path, transform=self.loader)
+        train_dataset = datasets.ImageFolder(train_path, transform=self.transform)
+        test_dataset = datasets.ImageFolder(test_path, transform=self.transform)
         train_dataset_indices = list(range(len(train_dataset)))
         np.random.seed(101)
         np.random.shuffle(train_dataset_indices)
         train_sampler = SubsetRandomSampler(train_dataset_indices[int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset))):])
         val_sampler = SubsetRandomSampler(train_dataset_indices[:int(np.floor(self.TRAIN_VAL_SPLIT * len(train_dataset)))])
-        return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, shuffle=False, drop_last=True),
-                "VAL": DataLoader(train_dataset, batch_size=1, sampler=val_sampler, shuffle=False),
-                "TEST": DataLoader(test_dataset, batch_size=1, shuffle=False)}
+        return {"TRAIN": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=train_sampler, drop_last=True),
+                "VAL": DataLoader(train_dataset, batch_size=self.BATCH_SIZE, sampler=val_sampler, drop_last=True),
+                "TEST": DataLoader(test_dataset, batch_size=1)}
 
     def multi_acc(self, y_pred, y_test):
-        y_pred_softmax = torch.log_softmax(y_pred, dim=1)
-        _, y_pred_tags = torch.max(y_pred_softmax, dim=1)
+        _, y_pred_tags = torch.max(torch.log_softmax(y_pred, dim=1), dim=1)
         correct_pred = (y_pred_tags == y_test).float()
         return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
@@ -136,67 +145,130 @@ class MultiLayerPerceptron(AnalysisToolkit):
             torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
 
     def load_model(self, model_path):
+        print("Loading model...")
         model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
-        return model
+        self.model = model
+        print("Calculating training route view latent spaces...")
+        self.route_view_layton_spaces = []
+        for filename in probar(self.route_filenames):
+            self.model(self.transform(Image.fromarray(self.preprocess(cv2.imread(self.route_path + filename)))).float().to(self.device).view(1, self.INPUT_SIZE))
+            self.route_view_layton_spaces.append(self.model.get_latent_space())
 
-    def test_model(self, model):
+    def test_model(self):
         y_pred, y_ground_truth = [], []
         with torch.no_grad():
             for X_test_batch, y_test_batch in self.testloader:
                 X_test_batch, y_test_batch = X_test_batch.to(self.device), y_test_batch.to(self.device)
 
-                y_test_pred = model(X_test_batch)
+                y_test_pred = self.model(X_test_batch)
                 _, y_pred_tag = torch.max(y_test_pred, dim=1)
 
                 y_pred.append(y_pred_tag.cpu().numpy())
                 y_ground_truth.append(y_test_batch.cpu().numpy())
         print(classification_report(y_ground_truth, y_pred))
 
-    def get_rFF(self, view, view_heading, model):
+    def get_route_rFF(self, view, view_heading=0):
         view_preprocessed = self.preprocess(view)
         rFF = {}
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             view = self.rotate(view_preprocessed, i)
-            tensor = self.loader(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
-            rFF[(i + view_heading) % self.vis_deg] = torch.max(model(tensor), dim=1)
+            tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1, index=torch.tensor([1]).to(self.device))
+            # pos_tag_val = torch.index_select(self.model(tensor), dim=1, index=torch.tensor([1]).to(self.device))
+            rFF[(i + view_heading) % self.vis_deg] = pos_tag_val.item()
         return rFF
 
+    # Need to implement this properly - placeholder
+    def get_view_rFF(self, view_1, view_2, view_1_heading=0):
+        view_preprocessed = self.preprocess(view_1)
+        rFF = {}
+        for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
+            view = self.rotate(view_preprocessed, i)
+            tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
+            pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1,
+                                             index=torch.tensor([1]).to(self.device))
+            # pos_tag_val = torch.index_select(self.model(tensor), dim=1, index=torch.tensor([1]).to(self.device))
+            rFF[(i + view_1_heading) % self.vis_deg] = pos_tag_val.item()
+        return rFF
+
+    # Get the most familiar heading given an rIDF for a view
+    def get_most_familiar_heading(self, rFF):
+        return max(rFF, key=rFF.get)
+
+    # Calculates the signal strength of an rFF
+    def get_signal_strength(self, rFF):
+        return max(rFF.values()) / np.array(list(rFF.values())).mean()
+
+    # Need to implement this properly - placeholder
+    def get_matched_route_view_idx(self, view, view_heading=0):
+        view_preprocessed = self.preprocess(self.rotate(view, view_heading))
+        view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
+        self.model(view_tensor)
+        view_layton_space = self.model.get_latent_space()
+        x = {i: torch.cdist(self.route_view_layton_spaces[i], view_layton_space) for i in range(len(self.route_view_layton_spaces))}
+        return min(x, key=x.get)
 
 class Model(nn.Module):
     def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
         nn.Module.__init__(self)
 
-        self.HIDDEN_SIZES = HIDDEN_SIZES
-
         # Model layers
-        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0])
-        self.fc_hidden = nn.ModuleList([nn.Linear(i, j) for i, j in zip(self.HIDDEN_SIZES, self.HIDDEN_SIZES[1:])])
-        self.fc_output = nn.Linear(HIDDEN_SIZES[-1], 2)
-        self.dropout = nn.Dropout(0.5)
+        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0][0])
+        self.fc_hidden = nn.ModuleList([nn.Linear(layer[0], layer[1]) for layer in HIDDEN_SIZES])
+        self.fc_output = nn.Linear(HIDDEN_SIZES[-1][1], 2)
 
         self.activation = nn.ReLU()
 
+        self.latent_space = None
+
     def forward(self, inputs):
         x = inputs.view(inputs.size(0), -1)
-        # x = self.dropout(x)
         x = self.activation(self.fc_input(x))
         for layer in self.fc_hidden:
             x = self.activation(layer(x))
+        self.latent_space = x
         return self.fc_output(x)
+
+    def get_latent_space(self):
+        return self.latent_space
 
 if __name__ == '__main__':
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
-                               train_path="ANN_DATA/60_DEGREES_DATA/TRAIN", test_path="ANN_DATA/60_DEGREES_DATA/TEST")
-    # mlp.train_model(save_path= "MLP_MODELS/TRAINED_ON_60_DEGREES_DATA", save_model=True)
-    model = mlp.load_model("MLP_MODELS/TRAINED_ON_60_DEGREES_DATA/bright-water-32.pth")
+                               train_path="ANN_DATA/90_DEGREES_DATA/TRAIN", test_path="ANN_DATA/90_DEGREES_DATA/TEST")
+    mlp.gen_data(angle=10)
+    # mlp.train_model(save_path="MLP_MODELS/TRAINED_ON_90_DEGREES_DATA", save_model=True)
+    # mlp.load_model("MLP_MODELS/TRAINED_ON_90_DEGREES_DATA/chocolate-dust-54.pth")
 
-    # mlp.test_model(model)
+    # mlp.test_model()
 
-    idx = 0
-    filename = mlp.route_filenames[idx]
-    route_view = cv2.imread(mlp.route_path + filename)
-    route_heading = mlp.route_headings[idx]
-    rFF = mlp.get_rFF(view=route_view, view_heading=route_heading, model=model)
-    print(rFF)
+    # Database analysis
+    # mlp.database_analysis(spacing=20, save_data=True)
+    # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
+    # mlp.database_analysis(spacing=20, corridor=30, save_data=True)
+
+    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/TRAINED_ON_45_DEGREES_DATA/31-3-2021_19-41-28_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_60_DEGREES_DATA/31-3-2021_19-39-15_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_90_DEGREES_DATA/31-3-2021_17-38-14_ant1_route1_140x740_20.csv"],
+    #                   ["MLP trained on 45 degree data", "MLP trained on 60 degree data", "MLP trained on 90 degree data"],
+    #                   save_data=False)
+
+    # Off-route view analysis
+    # filename = mlp.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(mlp.grid_path+filename)
+    # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+
+    # On-route view analysis
+    # idx = 400
+    # route_view = cv2.imread(mlp.route_path+mlp.route_filenames[idx])
+    # route_heading = mlp.route_headings[idx]
+    # print(mlp.get_matched_route_view_idx(route_view))
+    # mlp.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
+
+    # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
+    # mlp.rFF_plot(rFF=rFF,title="rFF", ylim=None, save_data=False)
+    # print(mlp.get_most_familiar_heading(rFF))
+
+    # Off-route best matched view analysis
+    # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)
