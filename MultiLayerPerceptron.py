@@ -55,18 +55,17 @@ class MultiLayerPerceptron(AnalysisToolkit):
             dp.append([f'{filename.strip(".png")}_-{angle}', self.rotate(view, -angle), 0])
         df = pd.DataFrame(dp, columns=['FILENAME', 'VIEW', 'LABEL'])
         train, test = train_test_split(df, test_size=splt)
-        try:
-            for parent in ["TRAIN", "TEST"]:
-                for child in ["0", "1"]:
-                    os.makedirs(f"./ANN_DATA/{angle}_DEGREES_DATA/{parent}/{child}")
-            for filename, view, label in test.values:
-                plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TEST/{label}/{filename}.png",
-                           cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-            for filename, view, label in train.values:
-                plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
-                           cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        except OSError:
-            print("Failed to create directory")
+        for parent in ["TRAIN", "TEST"]:
+            for child in ["0", "1"]:
+                path = f"./ANN_DATA/{angle}_DEGREES_DATA/{parent}/{child}"
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+        for filename, view, label in test.values:
+            plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TEST/{label}/{filename}.png",
+                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
+        for filename, view, label in train.values:
+            plt.imsave(f"./ANN_DATA/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
+                       cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
 
     def get_dataloaders(self, train_path, test_path):
         train_dataset = datasets.ImageFolder(train_path, transform=self.transform)
@@ -142,6 +141,8 @@ class MultiLayerPerceptron(AnalysisToolkit):
                        'Train Acc': accuracy_stats['train'][-1], 'Val Acc': accuracy_stats['val'][-1]})
         print("Finished Training")
         if save_model:
+            if not os.path.isdir(save_path):
+                os.makedirs(save_path)
             torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
 
     def load_model(self, model_path):
@@ -175,8 +176,8 @@ class MultiLayerPerceptron(AnalysisToolkit):
         for i in np.arange(0, self.vis_deg, step=self.rot_deg, dtype=int):
             view = self.rotate(view_preprocessed, i)
             tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
-            pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1, index=torch.tensor([1]).to(self.device))
-            # pos_tag_val = torch.index_select(self.model(tensor), dim=1, index=torch.tensor([1]).to(self.device))
+            pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1,
+                                             index=torch.tensor([1]).to(self.device))
             rFF[(i + view_heading) % self.vis_deg] = pos_tag_val.item()
         return rFF
 
@@ -189,7 +190,6 @@ class MultiLayerPerceptron(AnalysisToolkit):
             tensor = self.transform(Image.fromarray(view)).float().to(self.device).view(1, self.INPUT_SIZE)
             pos_tag_val = torch.index_select(torch.log_softmax(self.model(tensor), dim=1), dim=1,
                                              index=torch.tensor([1]).to(self.device))
-            # pos_tag_val = torch.index_select(self.model(tensor), dim=1, index=torch.tensor([1]).to(self.device))
             rFF[(i + view_1_heading) % self.vis_deg] = pos_tag_val.item()
         return rFF
 
@@ -235,24 +235,33 @@ class Model(nn.Module):
         return self.latent_space
 
 if __name__ == '__main__':
+    data_path = "90_DEGREES_DATA"
+    model_name = "chocolate-dust-55"
+
     mlp = MultiLayerPerceptron(route="ant1_route1", vis_deg=360, rot_deg=2,
-                               train_path="ANN_DATA/90_DEGREES_DATA/TRAIN", test_path="ANN_DATA/90_DEGREES_DATA/TEST")
-    mlp.gen_data(angle=10)
-    # mlp.train_model(save_path="MLP_MODELS/TRAINED_ON_90_DEGREES_DATA", save_model=True)
-    # mlp.load_model("MLP_MODELS/TRAINED_ON_90_DEGREES_DATA/chocolate-dust-54.pth")
+                               train_path=f"ANN_DATA/{data_path}/TRAIN", test_path=f"ANN_DATA/{data_path}/TEST")
+    mlp.gen_data(angle=5)
+    # mlp.train_model(save_path=f"MLP_MODELS/TRAINED_ON_{data_path}", save_model=True)
+    # mlp.load_model(f"MLP_MODELS/TRAINED_ON_{data_path}/{model_name}.pth")
 
     # mlp.test_model()
 
     # Database analysis
     # mlp.database_analysis(spacing=20, save_data=True)
     # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # mlp.database_analysis(spacing=20, corridor=30, save_data=True)
+    # mlp.database_analysis(spacing=20, corridor=30, locationality=True,
+    #                       save_path=f"DATABASE_ANALYSIS/MLP/TRAINED_ON_{data_path}", save_data=True)
 
-    # mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/TRAINED_ON_45_DEGREES_DATA/31-3-2021_19-41-28_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_60_DEGREES_DATA/31-3-2021_19-39-15_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/TRAINED_ON_90_DEGREES_DATA/31-3-2021_17-38-14_ant1_route1_140x740_20.csv"],
-    #                   ["MLP trained on 45 degree data", "MLP trained on 60 degree data", "MLP trained on 90 degree data"],
-    #                   save_data=False)
+    mlp.error_boxplot(["DATABASE_ANALYSIS/MLP/TRAINED_ON_5_DEGREES_DATA/3-4-2021_16-11-54_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_10_DEGREES_DATA/2-4-2021_18-0-55_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_20_DEGREES_DATA/2-4-2021_18-2-26_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_45_DEGREES_DATA/2-4-2021_18-5-51_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_60_DEGREES_DATA/2-4-2021_18-7-30_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_90_DEGREES_DATA/2-4-2021_18-11-29_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_120_DEGREES_DATA/3-4-2021_15-44-5_ant1_route1_140x740_20.csv",
+                       "DATABASE_ANALYSIS/MLP/TRAINED_ON_180_DEGREES_DATA/3-4-2021_15-45-41_ant1_route1_140x740_20.csv"],
+                      [f"neg examples taken {deg} degrees off route" for deg in [5, 10, 20, 45, 60, 90, 120, 180]],
+                      locationality=False, save_data=False)
 
     # Off-route view analysis
     # filename = mlp.grid_filenames.get((500, 500))
