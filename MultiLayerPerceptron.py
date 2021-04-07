@@ -259,8 +259,8 @@ class Model(nn.Module):
 
 if __name__ == '__main__':
     route_name = "ant1_route1"
-    data_path = "0_DEGREES_DATA"
-    model_name = "soft-wave-64"
+    data_path = "90_DEGREES_DATA"
+    model_name = "chocolate-dust-55"
 
     mlp = MultiLayerPerceptron(route=route_name, vis_deg=360, rot_deg=2,
                                train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
@@ -275,8 +275,11 @@ if __name__ == '__main__':
     # Database analysis
     # mlp.database_analysis(spacing=20, save_data=True)
     # mlp.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # mlp.database_analysis(spacing=20, corridor=30, locationality=True,
+    # mlp.database_analysis(spacing=20, corridor=30,
     #                       save_path=f"DATABASE_ANALYSIS/MLP/{route_name}/TRAINED_ON_{data_path}", save_data=True)
+    # mlp.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/2-4-2021_18-11-29_ant1_route1_140x740_20.csv",
+    #                                 spacing=20, locationality=False,
+    #                                 save_path=f"DATABASE_ANALYSIS/MLP/{route_name}/TRAINED_ON_{data_path}", save_data=False)
 
     # indexes = [f"neg examples taken {deg} degrees off-route" for deg in [0, 10, 20, 45, 60, 90, 120, 180]]
     # indexes.append("neg examples taken randomly off-route")
@@ -310,5 +313,5 @@ if __name__ == '__main__':
     # Off-route best matched view analysis
     # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)
 
-    view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(500, 500)])
-    mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (500, 500)")
+    view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(510, 250)])
+    mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (510, 250)")

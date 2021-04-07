@@ -56,12 +56,20 @@ class PerfectMemory(AnalysisToolkit):
         return min(x, key=x.get)
 
 if __name__ == "__main__":
-    pm = PerfectMemory(route="ant1_route1", vis_deg=360, rot_deg=2)
+    route_name = "ant1_route1"
+    resolution = "16_deg_px_res"
+
+    pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=2)
 
     # Database analysis
     # pm.database_analysis(spacing=20, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
-    # pm.database_analysis(spacing=20, corridor=30, save_data=True)
+    # pm.database_analysis(spacing=20, corridor=30, save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/8_deg_px_res",
+    #                      save_data=True)
+    # pm.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv",
+    #                                spacing=20, locationality=True,
+    #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
+
     # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
     # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
     # four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
@@ -100,5 +108,5 @@ if __name__ == "__main__":
     # Off-route real match view analysis
     # pm.ground_truth_view_analysis(view_x=610, view_y=810, save_data=True)
 
-    view = cv2.imread(pm.grid_path + pm.grid_filenames[(500, 500)])
-    pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (500, 500)")
+    view = cv2.imread(pm.grid_path + pm.grid_filenames[(510, 250)])
+    pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (510, 250)")

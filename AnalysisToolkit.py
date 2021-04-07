@@ -87,7 +87,7 @@ class AnalysisToolkit:
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-    def database_analysis(self, spacing, bounds=None, corridor=None, locationality=True, save_path="DATABASE_ANALYSIS", save_data=False):
+    def database_analysis(self, spacing, bounds=None, corridor=None, save_path="DATABASE_ANALYSIS", save_data=False):
         if bounds is None:
             bounds = self.bounds
 
@@ -116,6 +116,24 @@ class AnalysisToolkit:
 
             data.append({"X_COOR": x, "Y_COOR": y, "HEADING": familiar_heading, "MATCHED_ROUTE_VIEW_IDX": matched_route_view_idx})
 
+        if save_data:
+            filename = f"{self.route_name}_{str(np.ptp(x_ticks))}x{str(np.ptp(y_ticks))}_{str(spacing)}"
+            self.save_dict_as_CSV(data, save_path, filename)
+
+    def show_database_analysis_plot(self, data_path, spacing, bounds=None, locationality=True,
+                                    save_path="DATABASE_ANALYSIS", save_data=False):
+        data = pd.read_csv(open(data_path))
+
+        if bounds is None:
+            bounds = self.bounds
+
+        x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / len(self.route_X)) for i in range(len(self.route_X))]
+        quiver_map = [line_map[idx] for idx in data['MATCHED_ROUTE_VIEW_IDX'].values]
+
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
         ax = fig.add_subplot()
 
@@ -124,17 +142,16 @@ class AnalysisToolkit:
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
-        X, Y = zip(*quiver_coors)
-        u = [np.sin(np.deg2rad(n["HEADING"])) for n in data]
-        v = [np.cos(np.deg2rad(n["HEADING"])) for n in data]
-
+        X, Y = data['X_COOR'].values, data['Y_COOR'].values
+        u = [np.sin(np.deg2rad(heading)) for heading in data['HEADING'].values]
+        v = [np.cos(np.deg2rad(heading)) for heading in data['HEADING'].values]
         if locationality:
             ax.set_prop_cycle('color', line_map)
             [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
-            ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+            ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1 / spacing) * 2, width=0.01, headwidth=5)
         else:
             ax.plot(self.route_X, self.route_Y, linewidth=4, color='r')
-            ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+            ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1 / spacing) * 2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
@@ -147,7 +164,6 @@ class AnalysisToolkit:
         if save_data:
             filename = f"{self.route_name}_{str(np.ptp(x_ticks))}x{str(np.ptp(y_ticks))}_{str(spacing)}"
             self.save_plot(plt, save_path, filename)
-            self.save_dict_as_CSV(data, save_path, filename)
         plt.show()
 
     def avg_absolute_error(self, data_path):
