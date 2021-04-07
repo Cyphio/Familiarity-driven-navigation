@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # pm.error_boxplot([four_px_data_path, four_px_enviro_data_path],
     #                  ["Within route corridor", "Across environment"],
     #                  save_data=True)
-    pm.error_boxplot(["DATABASE_ANALYSIS/PERFECTMEMORY/31-3-2021_18-23-11_ant1_route1_140x740_20.csv"])
+    # pm.error_boxplot(["DATABASE_ANALYSIS/PERFECTMEMORY/31-3-2021_18-23-11_ant1_route1_140x740_20.csv"])
 
     # Route view analysis
     # pm.route_analysis(step=100)
@@ -99,3 +99,6 @@ if __name__ == "__main__":
 
     # Off-route real match view analysis
     # pm.ground_truth_view_analysis(view_x=610, view_y=810, save_data=True)
+
+    view = cv2.imread(pm.grid_path + pm.grid_filenames[(500, 500)])
+    pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (500, 500)")
