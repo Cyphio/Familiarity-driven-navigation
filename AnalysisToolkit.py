@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -73,18 +74,18 @@ class AnalysisToolkit:
     def rFF_plot(self, rFF, title, ylim=None, save_data=False):
         plt.plot(*zip(*sorted(rFF.items())))
         plt.title(f"{title}\n"
-                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(max(rFF.values()), 2)}")
+                  f"Confidence: {round(self.get_signal_strength(rFF), 4)}, "
+                  f"Maximum: {round(max(rFF.values()), 4)} @ {self.get_most_familiar_heading(rFF)}°")
         plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         if ylim is not None:
-            plt.ylim = ylim
+            plt.ylim(ylim[0], ylim[1])
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
         if save_data:
-            filename = "RFF"
-            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+            self.save_plot(plt, "VIEW_ANALYSIS/", title)
         plt.show()
 
     def database_analysis(self, spacing, bounds=None, corridor=None, save_path="DATABASE_ANALYSIS", save_data=False):

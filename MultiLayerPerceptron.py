@@ -218,7 +218,13 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
     # Get the most familiar heading given an rIDF for a view
     def get_most_familiar_heading(self, rFF):
+        # print(rFF)
+        # consec = [k1 for k1, k2 in zip(list(rFF.keys()), list(rFF.keys())[1:])
+        #           if np.round(rFF[k1], 1) == np.round(max(rFF.values()), 1)
+        #           and np.round(rFF[k1], 1) == np.round(rFF[k2], 1)]
+        # print(consec)
         return max(rFF, key=rFF.get)
+
 
     # Calculates the signal strength of an rFF
     def get_signal_strength(self, rFF):
@@ -262,7 +268,7 @@ if __name__ == '__main__':
     data_path = "90_DEGREES_DATA"
     model_name = "chocolate-dust-55"
 
-    mlp = MultiLayerPerceptron(route=route_name, vis_deg=360, rot_deg=2,
+    mlp = MultiLayerPerceptron(route=route_name, vis_deg=360, rot_deg=8,
                                train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
                                test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
@@ -294,24 +300,24 @@ if __name__ == '__main__':
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/7-4-2021_10-32-18_ant1_route1_140x740_20.csv"],
     #                   indexes, locationality=False, save_data=False)
 
-    # Off-route view analysis
-    # filename = mlp.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(mlp.grid_path+filename)
-    # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+    save_data = True
+    loc = (550, 560)
 
-    # On-route view analysis
-    # idx = 400
-    # route_view = cv2.imread(mlp.route_path+mlp.route_filenames[idx])
-    # route_heading = mlp.route_headings[idx]
-    # print(mlp.get_matched_route_view_idx(route_view))
-    # mlp.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
+    original = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/original.png")
+    mlp.rFF_plot(mlp.get_route_rFF(original), ylim=[-15, 1], title=f"MLP rFF of view at {loc}", save_data=save_data)
 
-    # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
-    # mlp.rFF_plot(rFF=rFF,title="rFF", ylim=None, save_data=False)
-    # print(mlp.get_most_familiar_heading(rFF))
+    lost_left_tussock = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_left_tussock.png")
+    mlp.rFF_plot(mlp.get_route_rFF(lost_left_tussock), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing left-most tussock", save_data=save_data)
 
-    # Off-route best matched view analysis
-    # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)
+    lost_middle_tussock = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_middle_tussock.png")
+    mlp.rFF_plot(mlp.get_route_rFF(lost_middle_tussock), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing midde tussock", save_data=save_data)
 
-    view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(510, 250)])
-    mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (510, 250)")
+    lost_right_tussock = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_right_tussock.png")
+    mlp.rFF_plot(mlp.get_route_rFF(lost_right_tussock), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing right-most tussock", save_data=save_data)
+
+    lost_sky_info = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_sky_info.png")
+    mlp.rFF_plot(mlp.get_route_rFF(lost_sky_info), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing sky information", save_data=save_data)
+
+    lost_ground_info = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_ground_info.png")
+    mlp.rFF_plot(mlp.get_route_rFF(lost_ground_info), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing ground information", save_data=save_data)
+

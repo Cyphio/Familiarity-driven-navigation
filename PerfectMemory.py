@@ -57,9 +57,9 @@ class PerfectMemory(AnalysisToolkit):
 
 if __name__ == "__main__":
     route_name = "ant1_route1"
-    resolution = "16_deg_px_res"
+    resolution = "8_deg_px_res"
 
-    pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=2)
+    pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=8)
 
     # Database analysis
     # pm.database_analysis(spacing=20, save_data=True)
@@ -108,5 +108,16 @@ if __name__ == "__main__":
     # Off-route real match view analysis
     # pm.ground_truth_view_analysis(view_x=610, view_y=810, save_data=True)
 
-    view = cv2.imread(pm.grid_path + pm.grid_filenames[(510, 250)])
-    pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (510, 250)")
+    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(510, 250)])
+    # pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (510, 250)")
+
+    original = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/original.png")
+    lost_left_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_left_tussock.png")
+    lost_middle_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_middle_tussock.png")
+    lost_right_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_right_tussock.png")
+    lost_sky_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_sky_info.png")
+    lost_ground_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png")
+    # plt.imshow(mlp.preprocess(lost_sky_info), cmap='gray')
+    # plt.show()
+    rFF = pm.rFF_plot(pm.get_route_rFF(lost_ground_info), ylim=[-1450, -350],
+                       title="PM rFF of view at (550, 560) missing ground information", save_data=True)
