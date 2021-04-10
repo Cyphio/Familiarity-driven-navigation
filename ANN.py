@@ -113,18 +113,18 @@ class ANN(AnalysisToolkit):
         return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
     def train_model(self, save_path="ANN_MODELS", save_model=True):
-        if self.model_name == "MLP":
-            wandb.init(project='routenavigation-mlp')
-        if self.model_name == 'RBFNN':
-            wandb.init(project='routenavigation-rbfnn')
-
         model = self.model_class
         model.to(self.device)
 
-        criterion = nn.CrossEntropyLoss()
+        loss_func = nn.CrossEntropyLoss()
         optimizer = optim.Adam(params=model.parameters(), lr=self.LEARNING_RATE)
 
-        wandb.watch(model)
+        if save_model:
+            if self.model_name == "MLP":
+                wandb.init(project='routenavigation-mlp')
+            if self.model_name == 'RBFNN':
+                wandb.init(project='routenavigation-rbfnn')
+            wandb.watch(model)
 
         accuracy_stats = {'train': [], 'val': []}
         loss_stats = {'train': [], 'val': []}
@@ -138,8 +138,9 @@ class ANN(AnalysisToolkit):
                 optimizer.zero_grad()
 
                 y_train_pred = model(X_train_batch)
+                # print(y_train_pred)
 
-                train_loss = criterion(y_train_pred, y_train_batch)
+                train_loss = loss_func(y_train_pred, y_train_batch)
                 train_acc = self.multi_acc(y_train_pred, y_train_batch)
 
                 train_loss.backward()
@@ -155,7 +156,7 @@ class ANN(AnalysisToolkit):
 
                     y_val_pred = model(X_val_batch)
 
-                    val_loss = criterion(y_val_pred, y_val_batch)
+                    val_loss = loss_func(y_val_pred, y_val_batch)
                     val_acc = self.multi_acc(y_val_pred, y_val_batch)
 
                     val_epoch_loss += val_loss.item()
@@ -168,8 +169,9 @@ class ANN(AnalysisToolkit):
 
             print(f"Epoch {(epoch+1)+0:02}: | Train Loss: {loss_stats['train'][-1]:.5f} | Val Loss: {loss_stats['val'][-1]:.5f} | "
                   f"Train Acc: {accuracy_stats['train'][-1]:.3f} | Val Acc: {accuracy_stats['val'][-1]:.3f}")
-            wandb.log({'Train Loss': loss_stats['train'][-1], 'Val Loss': loss_stats['val'][-1],
-                       'Train Acc': accuracy_stats['train'][-1], 'Val Acc': accuracy_stats['val'][-1]})
+            if save_model:
+                wandb.log({'Train Loss': loss_stats['train'][-1], 'Val Loss': loss_stats['val'][-1],
+                           'Train Acc': accuracy_stats['train'][-1], 'Val Acc': accuracy_stats['val'][-1]})
         print("Finished Training")
         if save_model:
             if not os.path.isdir(save_path):
@@ -195,6 +197,7 @@ class ANN(AnalysisToolkit):
                 X_test_batch, y_test_batch = X_test_batch.to(self.device), y_test_batch.to(self.device)
 
                 y_test_pred = self.model(X_test_batch)
+                # print(y_test_pred)
                 _, y_pred_tag = torch.max(y_test_pred, dim=1)
 
                 y_pred.append(y_pred_tag.cpu().numpy())
@@ -263,7 +266,7 @@ class MLPModel(nn.Module):
     def forward(self, inputs):
         x = inputs.view(inputs.size(0), -1)
         for i in range(len(self.linear_layers)-1):
-            x = self.linear_layers[i](x)
+            x = self.activation(self.linear_layers[i](x))
         self.latent_space = x
         return self.linear_layers[-1](x)
 
@@ -274,9 +277,9 @@ class RBFNNModel(nn.Module):
     def __init__(self, INPUT_SIZE):
         nn.Module.__init__(self)
 
-        LAYER_WIDTHS = [INPUT_SIZE, 360, 2]
-        LAYER_CENTRES = [2, 2]
-        BASIS_FUNC_FLAG = "GAUSSIAN"
+        LAYER_WIDTHS = [INPUT_SIZE, 180, 2]
+        LAYER_CENTRES = [1, 1]
+        BASIS_FUNC_FLAG = "LINEAR"
 
         self.rbf_layers = nn.ModuleList()
         self.linear_layers = nn.ModuleList()
@@ -302,33 +305,35 @@ class RBF(nn.Module):
     def __init__(self, INPUT_SIZE, OUTPUT_SIZE, BASIS_FUNC_FLAG):
         nn.Module.__init__(self)
         self.in_features = INPUT_SIZE
-        self.out_featres = OUTPUT_SIZE
+        self.out_features = OUTPUT_SIZE
         self.centres = nn.Parameter(torch.Tensor(OUTPUT_SIZE, INPUT_SIZE))
         self.log_sigmas = nn.Parameter(torch.Tensor(OUTPUT_SIZE))
         self.basis_func_flag = BASIS_FUNC_FLAG.upper()
         self.reset_parameters()
 
     def reset_parameters(self):
-        nn.init.normal(self.centres, 0, 1)
-        nn.init.constant(self.log_sigmas, 0)
+        nn.init.normal_(self.centres, 0, 1)
+        nn.init.constant_(self.log_sigmas, 0)
 
     def forward(self, inputs):
-        size = (inputs.size(0), self.out_featres, self.in_features)
+        size = (inputs.size(0), self.out_features, self.in_features)
         x = inputs.unsqueeze(1).expand(size)
         c = self.centres.unsqueeze(0).expand(size)
         distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
         return self.basis_func(distances, self.basis_func_flag)
 
-    def basis_func(self, alpha, basis_func_flag):
-        if basis_func_flag == "GAUSSIAN":
+    def basis_func(self, alpha, BASIS_FUNC_FLAG):
+        if BASIS_FUNC_FLAG == "GAUSSIAN":
             phi = torch.exp(-1 * alpha.pow(2))
             return phi
-        if basis_func_flag == "QUADRATIC":
+        if BASIS_FUNC_FLAG == "LINEAR":
+            return alpha
+        if BASIS_FUNC_FLAG == "QUADRATIC":
             phi = alpha.pow(2)
             return phi
-        # Base case: linear basis function
-        return alpha
-
+        if BASIS_FUNC_FLAG == "INVERSE_QUADRATIC":
+            phi = torch.ones_like(alpha) / (torch.ones_like(alpha) + alpha.pow(2))
+            return phi
 
 
 
@@ -336,17 +341,17 @@ if __name__ == '__main__':
     ANN_flag = "RBFNN"
     route_name = "ant1_route1"
     data_path = "90_DEGREES_DATA"
-    model_name = "chocolate-dust-55"
+    model_name = "fluent-sponge-12"
 
-    mlp = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
+    ann = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
               test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
-    # mlp.gen_data(angle=0, is_random=True, split=0.2)
-    mlp.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
-    # mlp.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
+    # ann.gen_data(angle=0, is_random=True, split=0.2)
+    ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=False)
 
-    # mlp.test_model()
+    # ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
+    # ann.test_model()
 
     # Database analysis
     # mlp.database_analysis(spacing=20, save_data=True)
