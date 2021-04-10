@@ -59,6 +59,69 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_0_DEGREES_DATA\6-4-2021_10-26-26_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_10_DEGREES_DATA\2-4-2021_18-0-55_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_120_DEGREES_DATA\3-4-2021_15-44-5_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_180_DEGREES_DATA\3-4-2021_15-45-41_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_20_DEGREES_DATA\2-4-2021_18-2-26_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_45_DEGREES_DATA\2-4-2021_18-5-51_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_60_DEGREES_DATA\2-4-2021_18-7-30_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_90_DEGREES_DATA\2-4-2021_18-11-29_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\MLP\TRAINED_ON_RAND_DATA\7-4-2021_10-32-18_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\16_deg_px_res\16-3-2021_18-58-18_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>
@@ -66,7 +129,21 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\1_deg_px_res\16-3-2021_21-1-3_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\28-2-2021_15-45-13_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\2_deg_px_res\16-3-2021_19-52-18_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -87,7 +164,21 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\4_deg_px_res\15-3-2021_22-1-36_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\4_deg_px_res\16-3-2021_17-36-29_ant1_route1_140x740_20.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\DATABASE_ANALYSIS\PERFECTMEMORY\8_deg_px_res\16-3-2021_19-18-9_ant1_route1_140x740_20.csv">
           <value>
             <Attribute>
               <option name="separator" value="," />
@@ -102,6 +193,13 @@
           </value>
         </entry>
         <entry key="\PerfectMemory.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\RBFNN.py">
           <value>
             <Attribute>
               <option name="separator" value="," />

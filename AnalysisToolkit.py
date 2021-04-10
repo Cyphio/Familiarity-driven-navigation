@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,13 +8,16 @@ from pyprobar import probar
 import datetime
 import csv
 import itertools
+import os
 
 class AnalysisToolkit:
-
     def __init__(self, route, vis_deg, rot_deg):
         self.route_name = route
         self.vis_deg = vis_deg
         self.rot_deg = rot_deg
+
+        time = datetime.datetime.now()
+        self.time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
 
         self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
         self.grid_path = "ant_world_image_databases/grid/"
@@ -50,16 +54,16 @@ class AnalysisToolkit:
         return self.route_headings[list(zip(self.route_X, self.route_Y)).index(self.get_ground_truth_coor(x, y))]
 
     def save_plot(self, plot, path="", filename=""):
-        time = datetime.datetime.now()
-        time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
-        plot.savefig(f"{path + self.model_name}/{str(time)}_{filename}.png")
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        plot.savefig(f"{path}/{str(self.time)}_{filename}.png")
 
     def save_dict_as_CSV(self, data, path="", filename=""):
-        time = datetime.datetime.now()
-        time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
         keys = data[0].keys()
+        if not os.path.isdir(path):
+            os.makedirs(path)
         try:
-            with open(f"{path + self.model_name}/{str(time)}_{filename}.csv", 'w', newline='') as csvfile:
+            with open(f"{path}/{str(self.time)}_{filename}.csv", 'w', newline='') as csvfile:
                 dict_writer = csv.DictWriter(csvfile, keys)
                 dict_writer.writeheader()
                 dict_writer.writerows(data)
@@ -69,21 +73,21 @@ class AnalysisToolkit:
     def rFF_plot(self, rFF, title, ylim=None, save_data=False):
         plt.plot(*zip(*sorted(rFF.items())))
         plt.title(f"{title}\n"
-                  f"Confidence: {round(self.get_signal_strength(rFF), 2)}, Maximum: {round(max(rFF.values()), 2)}")
+                  f"Confidence: {round(self.get_signal_strength(rFF), 4)}, "
+                  f"Maximum: {round(max(rFF.values()), 4)} @ {self.get_most_familiar_heading(rFF)}°")
         plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         if ylim is not None:
-            plt.ylim = ylim
+            plt.ylim(ylim[0], ylim[1])
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
         if save_data:
-            filename = "RFF"
-            self.save_plot(plt, "VIEW_ANALYSIS/", filename)
+            self.save_plot(plt, "VIEW_ANALYSIS/", title)
         plt.show()
 
-    def database_analysis(self, spacing, bounds=None, corridor=None, save_data=False):
+    def database_analysis(self, spacing, bounds=None, corridor=None, save_path="DATABASE_ANALYSIS", save_data=False):
         if bounds is None:
             bounds = self.bounds
 
@@ -112,20 +116,42 @@ class AnalysisToolkit:
 
             data.append({"X_COOR": x, "Y_COOR": y, "HEADING": familiar_heading, "MATCHED_ROUTE_VIEW_IDX": matched_route_view_idx})
 
+        if save_data:
+            filename = f"{self.route_name}_{str(np.ptp(x_ticks))}x{str(np.ptp(y_ticks))}_{str(spacing)}"
+            self.save_dict_as_CSV(data, save_path, filename)
+
+    def show_database_analysis_plot(self, data_path, spacing, bounds=None, locationality=True,
+                                    save_path="DATABASE_ANALYSIS", save_data=False):
+        data = pd.read_csv(open(data_path))
+
+        if bounds is None:
+            bounds = self.bounds
+
+        x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+
+        cm = plt.get_cmap('YlOrRd')
+        line_map = [cm(1. * i / len(self.route_X)) for i in range(len(self.route_X))]
+        quiver_map = [line_map[idx] for idx in data['MATCHED_ROUTE_VIEW_IDX'].values]
+
         fig = plt.figure(figsize=(len(x_ticks), len(y_ticks)))
         ax = fig.add_subplot()
 
         ax.imshow(self.topdown_view)
 
-        ax.set_prop_cycle('color', line_map)
-        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
         ax.add_patch(plt.Circle((self.route_X[0], self.route_Y[0]), 5, color='green'))
         ax.add_patch(plt.Circle((self.route_X[-1], self.route_Y[-1]), 5, color='red'))
 
-        X, Y = zip(*quiver_coors)
-        u = [np.sin(np.deg2rad(n["HEADING"])) for n in data]
-        v = [np.cos(np.deg2rad(n["HEADING"])) for n in data]
-        ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1/spacing)*2, width=0.01, headwidth=5)
+        X, Y = data['X_COOR'].values, data['Y_COOR'].values
+        u = [np.sin(np.deg2rad(heading)) for heading in data['HEADING'].values]
+        v = [np.cos(np.deg2rad(heading)) for heading in data['HEADING'].values]
+        if locationality:
+            ax.set_prop_cycle('color', line_map)
+            [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
+            ax.quiver(X, Y, u, v, color=quiver_map, scale_units='xy', scale=(1 / spacing) * 2, width=0.01, headwidth=5)
+        else:
+            ax.plot(self.route_X, self.route_Y, linewidth=4, color='r')
+            ax.quiver(X, Y, u, v, color='w', scale_units='xy', scale=(1 / spacing) * 2, width=0.01, headwidth=5)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
@@ -136,9 +162,8 @@ class AnalysisToolkit:
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
 
         if save_data:
-            filename = self.route_name + '_' + str(np.ptp(x_ticks)) + 'x' + str(np.ptp(y_ticks)) + '_' + str(spacing)
-            self.save_plot(plt, "DATABASE_ANALYSIS/", filename)
-            self.save_dict_as_CSV(data, "DATABASE_ANALYSIS/", filename)
+            filename = f"{self.route_name}_{str(np.ptp(x_ticks))}x{str(np.ptp(y_ticks))}_{str(spacing)}"
+            self.save_plot(plt, save_path, filename)
         plt.show()
 
     def avg_absolute_error(self, data_path):
@@ -172,21 +197,23 @@ class AnalysisToolkit:
             total_count += 1
         return (correct_count/total_count)*100
 
-    def error_boxplot(self, data_paths, index_titles=None, save_data=False):
+    def error_boxplot(self, data_paths, index_titles=None, locationality=True, save_data=False):
         heading_errors = []
         indexes = []
         for idx, data_path in enumerate(data_paths):
             data = csv.DictReader(open(data_path))
             heading_errors.append([abs(self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR'])) - int(row['HEADING'])) for row in data])
-            if index_titles is not None:
-                indexes.append(f"{index_titles[idx]}\n"
-                               f"AVG DIRECTIONAL ERROR: {round(self.avg_absolute_error(data_path), 2)}\n"
-                               f"DIRECTIONALLY CORRECT: {round(self.directionally_correct(data_path), 2)}%\n"
-                               f"LOCATIONALLY CORRECT: {round(self.locationally_correct(data_path), 2)}%")
+            if locationality:
+                info_titles = f"AVG DIRECTIONAL ERROR: {round(self.avg_absolute_error(data_path), 2)}\n" \
+                              f"DIRECTIONALLY CORRECT: {round(self.directionally_correct(data_path), 2)}%\n" \
+                              f"LOCATIONALLY CORRECT: {round(self.locationally_correct(data_path), 2)}%"
             else:
-                indexes.append(f"AVG DIRECTIONAL ERROR: {round(self.avg_absolute_error(data_path), 2)}\n"
-                               f"DIRECTIONALLY CORRECT: {round(self.directionally_correct(data_path), 2)}%\n"
-                               f"LOCATIONALLY CORRECT: {round(self.locationally_correct(data_path), 2)}%")
+                info_titles = f"AVG DIRECTIONAL ERROR: {round(self.avg_absolute_error(data_path), 2)}\n" \
+                              f"DIRECTIONALLY CORRECT: {round(self.directionally_correct(data_path), 2)}%\n"
+            if index_titles is not None:
+                indexes.append(f"{index_titles[idx]}\n{info_titles}")
+            else:
+                indexes.append(f"{info_titles}")
         fig = plt.figure(dpi=750)
         ax = fig.add_subplot()
         df = pd.DataFrame(heading_errors, indexes)
@@ -194,6 +221,7 @@ class AnalysisToolkit:
         plt.title("Boxplot of directional errors in headings")
         plt.xlabel("Absolute heading error in degrees")
         plt.xticks(rotation=90)
+        plt.yticks(fontsize=7)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(10))
         ax.xaxis.set_minor_locator(plticker.AutoMinorLocator())
         plt.tight_layout()

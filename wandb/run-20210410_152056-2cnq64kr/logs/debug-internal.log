@@ -1,0 +1,43 @@
+2021-04-10 15:20:57,450 INFO    MainThread:19844 [internal.py:wandb_internal():88] W&B internal server running at pid: 19844, started at: 2021-04-10 15:20:57.446575
+2021-04-10 15:20:57,451 INFO    WriterThread:19844 [datastore.py:open_for_write():77] open: C:\Users\harry\PycharmProjects\RouteNavigation\wandb\run-20210410_152056-2cnq64kr\run-2cnq64kr.wandb
+2021-04-10 15:20:57,452 DEBUG   HandlerThread:19844 [handler.py:handle_request():120] handle_request: check_version
+2021-04-10 15:20:57,453 DEBUG   SenderThread:19844 [sender.py:send():160] send: header
+2021-04-10 15:20:57,453 DEBUG   SenderThread:19844 [sender.py:send():160] send: request
+2021-04-10 15:20:57,457 DEBUG   SenderThread:19844 [sender.py:send_request():169] send_request: check_version
+2021-04-10 15:20:57,610 DEBUG   SenderThread:19844 [sender.py:send():160] send: run
+2021-04-10 15:20:57,942 INFO    SenderThread:19844 [sender.py:_start_run_threads():651] run started: 2cnq64kr with start time 1618064456
+2021-04-10 15:20:57,942 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:20:57,943 DEBUG   HandlerThread:19844 [handler.py:handle_request():120] handle_request: run_start
+2021-04-10 15:20:57,943 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:00,631 DEBUG   HandlerThread:19844 [meta.py:__init__():34] meta init
+2021-04-10 15:21:00,631 DEBUG   HandlerThread:19844 [meta.py:__init__():48] meta init done
+2021-04-10 15:21:00,631 DEBUG   HandlerThread:19844 [meta.py:probe():190] probe
+2021-04-10 15:21:00,780 DEBUG   HandlerThread:19844 [meta.py:_setup_git():180] setup git
+2021-04-10 15:21:00,840 DEBUG   HandlerThread:19844 [meta.py:_setup_git():187] setup git done
+2021-04-10 15:21:00,840 DEBUG   HandlerThread:19844 [meta.py:_save_pip():52] save pip
+2021-04-10 15:21:00,841 DEBUG   HandlerThread:19844 [meta.py:_save_pip():66] save pip done
+2021-04-10 15:21:00,841 DEBUG   HandlerThread:19844 [meta.py:probe():231] probe done
+2021-04-10 15:21:00,845 DEBUG   SenderThread:19844 [sender.py:send():160] send: files
+2021-04-10 15:21:00,845 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-metadata.json with policy now
+2021-04-10 15:21:00,850 DEBUG   HandlerThread:19844 [handler.py:handle_request():120] handle_request: status
+2021-04-10 15:21:00,850 DEBUG   SenderThread:19844 [sender.py:send():160] send: request
+2021-04-10 15:21:00,850 DEBUG   SenderThread:19844 [sender.py:send_request():169] send_request: status
+2021-04-10 15:21:04,060 DEBUG   SenderThread:19844 [sender.py:send():160] send: files
+2021-04-10 15:21:04,061 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file media\graph\graph_0_summary_2cc3494d.graph.json with policy now
+2021-04-10 15:21:04,062 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:04,063 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:04,063 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:04,063 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:04,068 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:04,069 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:04,069 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:04,070 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:05,256 DEBUG   SenderThread:19844 [sender.py:send():160] send: history
+2021-04-10 15:21:05,257 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:05,257 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:06,509 DEBUG   SenderThread:19844 [sender.py:send():160] send: history
+2021-04-10 15:21:06,509 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:06,510 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
+2021-04-10 15:21:07,597 DEBUG   SenderThread:19844 [sender.py:send():160] send: history
+2021-04-10 15:21:07,597 DEBUG   SenderThread:19844 [sender.py:send():160] send: summary
+2021-04-10 15:21:07,598 INFO    SenderThread:19844 [sender.py:_save_file():781] saving file wandb-summary.json with policy end
