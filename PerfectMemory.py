@@ -5,7 +5,6 @@ from collections import defaultdict
 import matplotlib.pyplot as plt
 
 class PerfectMemory(AnalysisToolkit):
-
     def __init__(self, route, vis_deg, rot_deg):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
         self.model_name = 'PERFECTMEMORY'
@@ -46,7 +45,7 @@ class PerfectMemory(AnalysisToolkit):
     def get_signal_strength(self, rFF):
         return max(rFF.values()) / np.array(list(rFF.values())).mean()
 
-    # get the index of the best matching route view to a view given an rIDF for that view
+    # get the index of the best matching route view to a view
     def get_matched_route_view_idx(self, view, view_heading=0):
         # min_RIDF_idx = {k: (np.amin(v), np.argmin(v)) for k, v in self.get_route_rIDF(view, view_heading).items()}
         # return min(min_RIDF_idx.values())[1]

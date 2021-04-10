@@ -11,7 +11,6 @@ import itertools
 import os
 
 class AnalysisToolkit:
-
     def __init__(self, route, vis_deg, rot_deg):
         self.route_name = route
         self.vis_deg = vis_deg

@@ -17,26 +17,30 @@ import wandb
 import os
 import random
 
-class MultiLayerPerceptron(AnalysisToolkit):
-
-    def __init__(self, route, vis_deg, rot_deg, train_path, test_path):
+class ANN(AnalysisToolkit):
+    def __init__(self, route, vis_deg, rot_deg, ANN_flag, train_path, test_path):
         AnalysisToolkit.__init__(self, route, vis_deg, rot_deg)
-        self.model_name = 'MLP'
+
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        print(f"RUNNING ON: {self.device}")
 
         # Seeds
         np.random.seed(101)
         random.seed(101)
 
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        print(f"RUNNING ON: {self.device}")
-
-        # MLP hyper-parameters
+        # ANN hyper-parameters
         self.INPUT_SIZE = 360
-        self.HIDDEN_SIZES = [(360, 360)]
         self.TRAIN_VAL_SPLIT = 0.4
         self.EPOCHS = 50
         self.BATCH_SIZE = 32
         self.LEARNING_RATE = 0.001
+
+        if ANN_flag == 'MLP':
+            self.model_name = 'MLP'
+            self.model_class = MLPModel(self.INPUT_SIZE)
+        if ANN_flag == 'RBFNN':
+            self.model_name = 'RBFNN'
+            self.model_class = RBFNNModel(self.INPUT_SIZE)
 
         # Preprocess transforms
         self.transform = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.ToTensor()])
@@ -47,6 +51,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
         self.valloader = dataloaders['VAL']
         self.testloader = dataloaders['TEST']
 
+        # Arbitrary initialization
         self.model = None
         self.route_view_layton_spaces = None
 
@@ -107,10 +112,13 @@ class MultiLayerPerceptron(AnalysisToolkit):
         correct_pred = (y_pred_tags == y_test).float()
         return torch.round(correct_pred.sum() / len(correct_pred)*100)
 
-    def train_model(self, save_path="MLP_MODELS", save_model=True):
-        wandb.init(project='routenavigation-mlp')
+    def train_model(self, save_path="ANN_MODELS", save_model=True):
+        if self.model_name == "MLP":
+            wandb.init(project='routenavigation-mlp')
+        if self.model_name == 'RBFNN':
+            wandb.init(project='routenavigation-rbfnn')
 
-        model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
+        model = self.model_class
         model.to(self.device)
 
         criterion = nn.CrossEntropyLoss()
@@ -170,7 +178,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
 
     def load_model(self, model_path):
         print("Loading model...")
-        model = Model(self.INPUT_SIZE, self.HIDDEN_SIZES)
+        model = self.model_class
         model.to(self.device)
         model.load_state_dict(torch.load(model_path))
         self.model = model
@@ -193,6 +201,7 @@ class MultiLayerPerceptron(AnalysisToolkit):
                 y_ground_truth.append(y_test_batch.cpu().numpy())
         print(classification_report(y_ground_truth, y_pred, zero_division=0))
 
+    # Rotational Familiarity Function of a view against an ANN route representation
     def get_route_rFF(self, view, view_heading=0):
         view_preprocessed = self.preprocess(view)
         rFF = {}
@@ -225,12 +234,11 @@ class MultiLayerPerceptron(AnalysisToolkit):
         # print(consec)
         return max(rFF, key=rFF.get)
 
-
     # Calculates the signal strength of an rFF
     def get_signal_strength(self, rFF):
         return max(rFF.values()) / np.array(list(rFF.values())).mean()
 
-    # Need to implement this properly - placeholder
+    # get the index of the best matching route view to a view
     def get_matched_route_view_idx(self, view, view_heading=0):
         view_preprocessed = self.preprocess(self.rotate(view, view_heading))
         view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
@@ -239,42 +247,104 @@ class MultiLayerPerceptron(AnalysisToolkit):
         x = {i: torch.cdist(self.route_view_layton_spaces[i], view_layton_space) for i in range(len(self.route_view_layton_spaces))}
         return min(x, key=x.get)
 
-class Model(nn.Module):
-    def __init__(self, INPUT_SIZE, HIDDEN_SIZES):
+class MLPModel(nn.Module):
+    def __init__(self, INPUT_SIZE):
         nn.Module.__init__(self)
 
-        # Model layers
-        self.fc_input = nn.Linear(INPUT_SIZE, HIDDEN_SIZES[0][0])
-        self.fc_hidden = nn.ModuleList([nn.Linear(layer[0], layer[1]) for layer in HIDDEN_SIZES])
-        self.fc_output = nn.Linear(HIDDEN_SIZES[-1][1], 2)
+        LAYER_WIDTHS = [INPUT_SIZE, 360, 2]
+
+        self.linear_layers = nn.ModuleList()
+        for i in range(len(LAYER_WIDTHS) - 1):
+            self.linear_layers.append(nn.Linear(LAYER_WIDTHS[i], LAYER_WIDTHS[i + 1]))
 
         self.activation = nn.ReLU()
+        self.latent_space = None
+
+    def forward(self, inputs):
+        x = inputs.view(inputs.size(0), -1)
+        for i in range(len(self.linear_layers)-1):
+            x = self.linear_layers[i](x)
+        self.latent_space = x
+        return self.linear_layers[-1](x)
+
+    def get_latent_space(self):
+        return self.latent_space
+
+class RBFNNModel(nn.Module):
+    def __init__(self, INPUT_SIZE):
+        nn.Module.__init__(self)
+
+        LAYER_WIDTHS = [INPUT_SIZE, 360, 2]
+        LAYER_CENTRES = [2, 2]
+        BASIS_FUNC_FLAG = "GAUSSIAN"
+
+        self.rbf_layers = nn.ModuleList()
+        self.linear_layers = nn.ModuleList()
+        for i in range(len(LAYER_WIDTHS)-1):
+            self.rbf_layers.append(RBF(LAYER_WIDTHS[i], LAYER_CENTRES[i], BASIS_FUNC_FLAG))
+            self.linear_layers.append(nn.Linear(LAYER_CENTRES[i], LAYER_WIDTHS[i+1]))
 
         self.latent_space = None
 
     def forward(self, inputs):
         x = inputs.view(inputs.size(0), -1)
-        x = self.activation(self.fc_input(x))
-        for layer in self.fc_hidden:
-            x = self.activation(layer(x))
+        for i in range(len(self.rbf_layers)-1):
+            x = self.rbf_layers[i](x)
+            x = self.linear_layers[i](x)
         self.latent_space = x
-        return self.fc_output(x)
+        x = self.rbf_layers[-1](x)
+        return self.linear_layers[-1](x)
 
     def get_latent_space(self):
         return self.latent_space
 
+class RBF(nn.Module):
+    def __init__(self, INPUT_SIZE, OUTPUT_SIZE, BASIS_FUNC_FLAG):
+        nn.Module.__init__(self)
+        self.in_features = INPUT_SIZE
+        self.out_featres = OUTPUT_SIZE
+        self.centres = nn.Parameter(torch.Tensor(OUTPUT_SIZE, INPUT_SIZE))
+        self.log_sigmas = nn.Parameter(torch.Tensor(OUTPUT_SIZE))
+        self.basis_func_flag = BASIS_FUNC_FLAG.upper()
+        self.reset_parameters()
+
+    def reset_parameters(self):
+        nn.init.normal(self.centres, 0, 1)
+        nn.init.constant(self.log_sigmas, 0)
+
+    def forward(self, inputs):
+        size = (inputs.size(0), self.out_featres, self.in_features)
+        x = inputs.unsqueeze(1).expand(size)
+        c = self.centres.unsqueeze(0).expand(size)
+        distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
+        return self.basis_func(distances, self.basis_func_flag)
+
+    def basis_func(self, alpha, basis_func_flag):
+        if basis_func_flag == "GAUSSIAN":
+            phi = torch.exp(-1 * alpha.pow(2))
+            return phi
+        if basis_func_flag == "QUADRATIC":
+            phi = alpha.pow(2)
+            return phi
+        # Base case: linear basis function
+        return alpha
+
+
+
+
 if __name__ == '__main__':
+    ANN_flag = "RBFNN"
     route_name = "ant1_route1"
     data_path = "90_DEGREES_DATA"
     model_name = "chocolate-dust-55"
 
-    mlp = MultiLayerPerceptron(route=route_name, vis_deg=360, rot_deg=8,
-                               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
-                               test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
+    mlp = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
+              train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
+              test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
     # mlp.gen_data(angle=0, is_random=True, split=0.2)
-    # mlp.train_model(save_path=f"MLP_MODELS/{route_name}/TRAINED_ON_{data_path}", save_model=True)
-    mlp.load_model(f"MLP_MODELS/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
+    mlp.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
+    # mlp.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
 
     # mlp.test_model()
 
@@ -300,24 +370,33 @@ if __name__ == '__main__':
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/7-4-2021_10-32-18_ant1_route1_140x740_20.csv"],
     #                   indexes, locationality=False, save_data=False)
 
-    save_data = True
-    loc = (550, 560)
+    # Off-route view analysis
+    # filename = mlp.grid_filenames.get((500, 500))
+    # grid_view = cv2.imread(mlp.grid_path+filename)
+    # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
 
-    original = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/original.png")
-    mlp.rFF_plot(mlp.get_route_rFF(original), ylim=[-15, 1], title=f"MLP rFF of view at {loc}", save_data=save_data)
+    # On-route view analysis
+    # idx = 400
+    # route_view = cv2.imread(mlp.route_path+mlp.route_filenames[idx])
+    # route_heading = mlp.route_headings[idx]
+    # print(mlp.get_matched_route_view_idx(route_view))
+    # mlp.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
 
-    lost_left_tussock = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_left_tussock.png")
-    mlp.rFF_plot(mlp.get_route_rFF(lost_left_tussock), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing left-most tussock", save_data=save_data)
+    # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
+    # mlp.rFF_plot(rFF=rFF,title="rFF", ylim=None, save_data=False)
+    # print(mlp.get_most_familiar_heading(rFF))
 
-    lost_middle_tussock = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_middle_tussock.png")
-    mlp.rFF_plot(mlp.get_route_rFF(lost_middle_tussock), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing midde tussock", save_data=save_data)
+    # Off-route best matched view analysis
+    # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)
 
-    lost_right_tussock = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_right_tussock.png")
-    mlp.rFF_plot(mlp.get_route_rFF(lost_right_tussock), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing right-most tussock", save_data=save_data)
+    # view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(510, 250)])
+    # mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (510, 250)")
 
-    lost_sky_info = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_sky_info.png")
-    mlp.rFF_plot(mlp.get_route_rFF(lost_sky_info), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing sky information", save_data=save_data)
-
-    lost_ground_info = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{loc}/lost_ground_info.png")
-    mlp.rFF_plot(mlp.get_route_rFF(lost_ground_info), ylim=[-15, 1], title=f"MLP rFF of view at {loc} missing ground information", save_data=save_data)
-
+    # original = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/original.png")
+    # lost_left_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_left_tussock.png")
+    # lost_middle_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_middle_tussock.png")
+    # lost_right_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_right_tussock.png")
+    # lost_sky_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_sky_info.png")
+    # lost_ground_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png")
+    # mlp.rFF_plot(mlp.get_route_rFF(lost_ground_info), ylim=[-15, 1],
+    #                    title="MLP rFF of view at (550, 560) missing ground information", save_data=True)

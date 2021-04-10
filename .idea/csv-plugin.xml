@@ -199,6 +199,13 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\RBFNN.py">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
         <entry key="\ant_world_image_databases\grid\database_entries.csv">
           <value>
             <Attribute>
