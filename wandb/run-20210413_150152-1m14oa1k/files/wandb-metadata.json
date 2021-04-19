@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.8.8",
+    "heartbeatAt": "2021-04-13T14:01:58.883687",
+    "startedAt": "2021-04-13T14:01:52.298666",
+    "docker": null,
+    "gpu": "GeForce MX350",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\harry\\PycharmProjects\\RouteNavigation\\ANN.py",
+    "codePath": "ANN.py",
+    "git": {
+        "remote": "https://github.com/Cyphio/RouteNavigation.git",
+        "commit": "02cec4406b4126b87b8d213baacb9b1f173c660d"
+    },
+    "email": "Harry@mbr-online.co.uk",
+    "root": "C:/Users/harry/PycharmProjects/RouteNavigation",
+    "host": "LAPTOP-G5BCIL22",
+    "username": "harry",
+    "executable": "C:\\Users\\harry\\anaconda3\\envs\\ML38\\python.exe"
+}

@@ -73,13 +73,14 @@ class AnalysisToolkit:
     def rFF_plot(self, rFF, title, ylim=None, save_data=False):
         plt.plot(*zip(*sorted(rFF.items())))
         plt.title(f"{title}\n"
-                  f"Confidence: {round(self.get_signal_strength(rFF), 4)}, "
-                  f"Maximum: {round(max(rFF.values()), 4)} @ {self.get_most_familiar_heading(rFF)}°")
+                  f"Confidence: {round(self.get_signal_strength(rFF), 3)}, "
+                  f"Maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°")
         plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         if ylim is not None:
-            plt.ylim(ylim[0], ylim[1])
+            buffer = (ylim[1]-ylim[0])*0.05
+            plt.ylim(ylim[0]-buffer, ylim[1]+buffer)
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
@@ -165,6 +166,9 @@ class AnalysisToolkit:
             filename = f"{self.route_name}_{str(np.ptp(x_ticks))}x{str(np.ptp(y_ticks))}_{str(spacing)}"
             self.save_plot(plt, save_path, filename)
         plt.show()
+
+    def normalize(self, d, min, max=0):
+        return {k: ((v - min) / (max - min)) for k, v in d.items()}
 
     def avg_absolute_error(self, data_path):
         data = csv.DictReader(open(data_path))
