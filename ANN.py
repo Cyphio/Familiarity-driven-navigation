@@ -278,8 +278,8 @@ class RBFNNModel(nn.Module):
         nn.Module.__init__(self)
 
         LAYER_WIDTHS = [INPUT_SIZE, 180, 2]
-        LAYER_CENTRES = [1, 1]
-        BASIS_FUNC_FLAG = "LINEAR"
+        LAYER_CENTRES = [180, 1]
+        BASIS_FUNC_FLAG = "GAUSSIAN"
 
         self.rbf_layers = nn.ModuleList()
         self.linear_layers = nn.ModuleList()
@@ -320,6 +320,7 @@ class RBF(nn.Module):
         x = inputs.unsqueeze(1).expand(size)
         c = self.centres.unsqueeze(0).expand(size)
         distances = (x - c).pow(2).sum(-1).pow(0.5) / torch.exp(self.log_sigmas).unsqueeze(0)
+        # distances = torch.sqrt(torch.sum((x - c).pow(2))).unsqueeze(0)
         return self.basis_func(distances, self.basis_func_flag)
 
     def basis_func(self, alpha, BASIS_FUNC_FLAG):
@@ -338,19 +339,19 @@ class RBF(nn.Module):
 
 
 if __name__ == '__main__':
-    ANN_flag = "MLP"
+    ANN_flag = "RBFNN"
     route_name = "ant1_route1"
     data_path = "90_DEGREES_DATA"
-    model_name = "tough-paper-74"
+    model_name = "atomic-puddle-77"
 
     ann = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
               test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
     # ann.gen_data(angle=0, is_random=True, split=0.2)
-    # ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=False)
+    ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
 
-    ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
+    # ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
     # ann.test_model()
 
     # Database analysis
@@ -408,5 +409,10 @@ if __name__ == '__main__':
 
     # ann.rFF_plot(ann.get_route_rFF(lost_ground_info), ylim=[-20, 0],
     #              title="MLP rFF of view at (550, 560) missing ground information", save_data=True)
-    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(lost_ground_info), min=-20, max=0), ylim=[0, 1],
-    #              title="MLP rFF of view at (550, 560) missing ground information", save_data=True)
+    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(original), min=-20, max=0), ylim=[0, 1],
+    #              title="MLP rFF of view at (550, 560) missing ground information", save_data=False)
+
+
+    # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png"))
+    # plt.imshow(image)
+    # plt.show()
