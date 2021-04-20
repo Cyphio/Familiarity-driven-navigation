@@ -110,14 +110,12 @@ if __name__ == "__main__":
     # view = cv2.imread(pm.grid_path + pm.grid_filenames[(510, 250)])
     # pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (510, 250)")
 
-    # original = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/original.png")
-    # lost_left_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_left_tussock.png")
-    # lost_middle_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_middle_tussock.png")
-    # lost_right_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_right_tussock.png")
-    # lost_sky_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_sky_info.png")
-    # lost_ground_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png")
+    pos = "(630, 670)"
+    x = "original"
+    image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
+    ybound = [-900, -275]
     #
-    # pm.rFF_plot(pm.get_route_rFF(lost_ground_info), ylim=[-1400, -400],
-    #             title="PM rFF of view at (550, 560) missing ground information", save_data=True)
-    # pm.rFF_plot(pm.normalize(pm.get_route_rFF(lost_ground_info), min=-1400, max=-400), ylim=[0, 1],
-    #             title="PM rFF of view at (550, 560) missing ground information", save_data=True)
+    # pm.rFF_plot(pm.get_route_rFF(image), ylim=[-1400, -400],
+    #             title=f"PM rFF of view at {pos}: {x}", save_data=False)
+    pm.rFF_plot(pm.normalize(pm.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
+                title=f"PM rFF of view at {pos} {x}", save_data=False)

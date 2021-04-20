@@ -56,7 +56,7 @@ class AnalysisToolkit:
     def save_plot(self, plot, path="", filename=""):
         if not os.path.isdir(path):
             os.makedirs(path)
-        plot.savefig(f"{path}/{str(self.time)}_{filename}.png")
+        plot.savefig(f"{path}/{filename} {str(self.time)}.png")
 
     def save_dict_as_CSV(self, data, path="", filename=""):
         keys = data[0].keys()
@@ -70,17 +70,21 @@ class AnalysisToolkit:
         except IOError:
             print("I/O error")
 
-    def rFF_plot(self, rFF, title, ylim=None, save_data=False):
-        plt.plot(*zip(*sorted(rFF.items())))
+    def rFF_plot(self, rFF, title, ylim=None, ybound=None, save_data=False):
+        fig, ax = plt.subplots()
+        ax.plot(*zip(*sorted(rFF.items())))
         plt.title(f"{title}\n"
                   f"Confidence: {round(self.get_signal_strength(rFF), 3)}, "
-                  f"Maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°")
+                  f"Median maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°")
         plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         if ylim is not None:
             buffer = (ylim[1]-ylim[0])*0.05
             plt.ylim(ylim[0]-buffer, ylim[1]+buffer)
+        if ybound is not None:
+            ax.set_yticks(np.arange(0, 1.1, 0.2))
+            ax.set_yticklabels([f"{ybound[0]}, 0.0", "0.2", "0.4", "0.6", "0.8", f"{ybound[1]}, 1.0"])
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
         plt.tight_layout()
@@ -305,7 +309,7 @@ class AnalysisToolkit:
 
         familiar_heading = self.get_most_familiar_heading(route_rFF)
 
-        matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
+        matched_route_view_idx = self.get_matched_route_view_idx(route_rFF)
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
         matched_route_view_heading = self.route_headings[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)

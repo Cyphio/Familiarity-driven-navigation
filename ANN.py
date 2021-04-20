@@ -230,12 +230,17 @@ class ANN(AnalysisToolkit):
 
     # Get the most familiar heading given an rIDF for a view
     def get_most_familiar_heading(self, rFF):
-        # print(rFF)
-        # consec = [k1 for k1, k2 in zip(list(rFF.keys()), list(rFF.keys())[1:])
-        #           if np.round(rFF[k1], 1) == np.round(max(rFF.values()), 1)
-        #           and np.round(rFF[k1], 1) == np.round(rFF[k2], 1)]
-        # print(consec)
-        return max(rFF, key=rFF.get)
+        # max_ = max(rFF.values())
+        # if max_ < 0:
+        #     x = [k for k, v in rFF.items() if v >= (1.01*max_)]
+        #     print(x)
+        #     return np.median(x)
+        # else:
+        #     x = [k for k, v in rFF.items() if v >= (0.99*max_)]
+        #     print(x)
+        #     return np.median(x)
+        # return max(rFF, key=rFF.get)
+        return np.median([k for k, v in rFF.items() if v >= 0.99*max(rFF.values())])
 
     # Calculates the signal strength of an rFF
     def get_signal_strength(self, rFF):
@@ -339,19 +344,19 @@ class RBF(nn.Module):
 
 
 if __name__ == '__main__':
-    ANN_flag = "RBFNN"
+    ANN_flag = "MLP"
     route_name = "ant1_route1"
     data_path = "90_DEGREES_DATA"
-    model_name = "atomic-puddle-77"
+    model_name = "tough-paper-74"
 
     ann = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
               test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
     # ann.gen_data(angle=0, is_random=True, split=0.2)
-    ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
+    # ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
 
-    # ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
+    ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
     # ann.test_model()
 
     # Database analysis
@@ -400,19 +405,16 @@ if __name__ == '__main__':
     # view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(510, 250)])
     # mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (510, 250)")
 
-    # original = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/original.png")
-    # lost_left_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_left_tussock.png")
-    # lost_middle_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_middle_tussock.png")
-    # lost_right_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_right_tussock.png")
-    # lost_sky_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_sky_info.png")
-    # lost_ground_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png")
+    pos = "(550, 560)"
+    x = "only horizon information"
+    image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
 
-    # ann.rFF_plot(ann.get_route_rFF(lost_ground_info), ylim=[-20, 0],
-    #              title="MLP rFF of view at (550, 560) missing ground information", save_data=True)
-    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(original), min=-20, max=0), ylim=[0, 1],
-    #              title="MLP rFF of view at (550, 560) missing ground information", save_data=False)
+    # ann.rFF_plot(ann.get_route_rFF(image), ylim=[-20, 0],
+    #              title=f"MLP rFF of view at {pos}: {x}", save_data=False)
+    ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=-20, max=0), ylim=[0, 1],
+                 title=f"MLP rFF of view at {pos} {x}", save_data=True)
 
 
-    # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png"))
+    # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/missing ground information.png"))
     # plt.imshow(image)
     # plt.show()
