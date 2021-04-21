@@ -366,9 +366,10 @@ if __name__ == '__main__':
     #                       save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
     # ann.database_analysis(spacing=20, corridor=30,
     #                       save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
-    # ann.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/2-4-2021_18-11-29_ant1_route1_140x740_20.csv",
-    #                                 spacing=20, locationality=False,
-    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=False)
+    csv_file = "10-4-2021_19-30-43_ant1_route1_140x740_20.csv"
+    ann.show_database_analysis_plot(data_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{csv_file}",
+                                    spacing=20, locationality=False,
+                                    save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
 
     # indexes = [f"neg examples taken {deg} degrees off-route" for deg in [0, 10, 20, 45, 60, 90, 120, 180]]
     # indexes.append("neg examples taken randomly off-route")
@@ -408,14 +409,14 @@ if __name__ == '__main__':
     # pos = "(550, 560)"
     # ybound = [-20, 0]
 
-    pos = "(630, 670)"
-    ybound = [-20, 0]
-
-    x = "only horizon information"
-    image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
-
-    ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
-                title=f"{ANN_flag} rFF of view ({x}) at {pos} vs route memories", save_data=True)
+    # pos = "(630, 670)"
+    # ybound = [-20, 0]
+    #
+    # x = "only horizon information"
+    # image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
+    #
+    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
+    #             title=f"{ANN_flag} rFF of view ({x}) at {pos} vs route memories", save_data=True)
 
 
     # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/missing ground information.png"))
