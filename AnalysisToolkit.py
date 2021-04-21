@@ -75,7 +75,7 @@ class AnalysisToolkit:
         ax.plot(*zip(*sorted(rFF.items())))
         plt.title(f"{title}\n"
                   f"Confidence: {round(self.get_signal_strength(rFF), 3)}, "
-                  f"Median maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°")
+                  f"(Median) maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°", wrap=True)
         plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
@@ -87,9 +87,10 @@ class AnalysisToolkit:
             ax.set_yticklabels([f"{ybound[0]}, 0.0", "0.2", "0.4", "0.6", "0.8", f"{ybound[1]}, 1.0"])
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
-        plt.tight_layout()
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.85)
         if save_data:
-            self.save_plot(plt, "VIEW_ANALYSIS/", title)
+            self.save_plot(plt, "VIEW_ANALYSIS", title)
         plt.show()
 
     def database_analysis(self, spacing, bounds=None, corridor=None, save_path="DATABASE_ANALYSIS", save_data=False):
@@ -243,7 +244,7 @@ class AnalysisToolkit:
         rFF = self.get_view_rFF(view_1, view_2, view_1_heading)
         familiar_heading = self.get_most_familiar_heading(rFF)
 
-        rotated_view = np.roll(view_1, int(view_1.shape[1] * ((familiar_heading - view_1_heading) / self.vis_deg)), axis=1)
+        rotated_view = self.rotate(view_1, familiar_heading-view_1_heading)
 
         rotated_view_downsampled = self.preprocess(rotated_view)
         view_2_downsampled = self.preprocess(view_2)
@@ -267,7 +268,7 @@ class AnalysisToolkit:
 
         self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
-    def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+    def ground_truth_view_analysis(self, view_x, view_y, ybound, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
 
         ground_truth_view_coor = self.get_ground_truth_coor(view_x, view_y)
@@ -276,7 +277,8 @@ class AnalysisToolkit:
         ground_truth_view_heading = self.route_headings[ground_truth_view_idx]
         ground_truth_view = cv2.imread(self.route_path + ground_truth_view_filename)
 
-        rFF = self.get_view_rFF(view, ground_truth_view, view_heading)
+        rFF = self.normalize(self.get_view_rFF(view, ground_truth_view, view_heading),
+                             min=ybound[0], max=ybound[1])
         familiar_heading = self.get_most_familiar_heading(rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
@@ -290,53 +292,57 @@ class AnalysisToolkit:
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading: {familiar_heading}, ground truth offset: {abs(familiar_heading-ground_truth_view_heading)}")
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading vs ground truth view: {familiar_heading}°")
         ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title(f"Ground truth route view: {ground_truth_view_filename} at heading: {ground_truth_view_heading}")
+        ax[1].set_title(f"Ground truth route view: {ground_truth_view_filename} at pose: "
+                        f"({ground_truth_view_coor[0]}, {ground_truth_view_coor[1]}), {ground_truth_view_heading}°")
         ax[1].imshow(cv2.cvtColor(ground_truth_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
-            filename = "IMG_DIFF"
+            filename = "REALMATCH_IMG_DIFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
+        self.rFF_plot(rFF=rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs ground truth view",
+                      ylim=[0, 1], ybound=ybound, save_data=save_data)
 
-    def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+    def best_matched_view_analysis(self, view_x, view_y, ybound, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
-        route_rFF = self.get_route_rFF(view, view_heading)
 
-        familiar_heading = self.get_most_familiar_heading(route_rFF)
-
-        matched_route_view_idx = self.get_matched_route_view_idx(route_rFF)
+        matched_route_view_idx = self.get_matched_route_view_idx(view)
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
         matched_route_view_heading = self.route_headings[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)
-        matched_route_view_downsampled = self.preprocess(matched_route_view)
 
-        rotated_view = np.roll(view, int(view.shape[1] * ((familiar_heading - view_heading) / self.vis_deg)), axis=1)
+        route_rFF = self.normalize(self.get_route_rFF(view, view_heading),
+                                  min=ybound[0], max=ybound[1])
+        familiar_heading = self.get_most_familiar_heading(route_rFF)
+
+        rotated_view = self.rotate(view, familiar_heading-view_heading)
+
+        matched_route_view_downsampled = self.preprocess(matched_route_view)
         rotated_view_downsampled = self.preprocess(rotated_view)
 
         image_difference = self.image_difference(rotated_view_downsampled, matched_route_view_downsampled)
-        view_rFF = self.get_view_rFF(rotated_view, matched_route_view, familiar_heading)
 
-        plt.figure(dpi=750)
+        plt.figure()
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading: {familiar_heading}, best match offset: {abs(familiar_heading-matched_route_view_heading)}")
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading vs route memories: {familiar_heading}°")
         ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title(f"Best matched route view: {matched_route_view_filename} at heading: {matched_route_view_heading}")
+        ax[1].set_title(f"Best matched route view: {matched_route_view_filename} at pose: "
+                        f"({self.route_X[matched_route_view_idx]}, {self.route_Y[matched_route_view_idx]}), {matched_route_view_heading}°")
         ax[1].imshow(cv2.cvtColor(matched_route_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
-            filename = "IMG_DIFF"
+            filename = "BESTMATCH_IMG_DIFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        self.rFF_plot(rFF=view_rFF, title="rFF", ylim=None, save_data=save_data)
+        self.rFF_plot(rFF=route_rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs route memories", ylim=[0, 1], ybound=ybound, save_data=save_data)
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, 20, dtype=int)
         y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -20, dtype=int)

@@ -405,14 +405,17 @@ if __name__ == '__main__':
     # view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(510, 250)])
     # mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (510, 250)")
 
-    pos = "(550, 560)"
+    # pos = "(550, 560)"
+    # ybound = [-20, 0]
+
+    pos = "(630, 670)"
+    ybound = [-20, 0]
+
     x = "only horizon information"
     image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
 
-    # ann.rFF_plot(ann.get_route_rFF(image), ylim=[-20, 0],
-    #              title=f"MLP rFF of view at {pos}: {x}", save_data=False)
-    ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=-20, max=0), ylim=[0, 1],
-                 title=f"MLP rFF of view at {pos} {x}", save_data=True)
+    ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
+                title=f"{ANN_flag} rFF of view ({x}) at {pos} vs route memories", save_data=True)
 
 
     # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/missing ground information.png"))

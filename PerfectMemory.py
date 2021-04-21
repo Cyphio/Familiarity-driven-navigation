@@ -101,21 +101,20 @@ if __name__ == "__main__":
     # pm.rFF_plot(rFF=rFF, ylim=None, save_data=False)
     # print(pm.get_most_familiar_heading(rFF))
 
-    # Off-route best matched view analysis
-    # pm.best_matched_view_analysis(view_x=610, view_y=810, save_data=True)
+    # coor = [630, 670]
+    # ybound = [-1450, -500]
+    # pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=True)
+    # pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=True)
 
-    # Off-route real match view analysis
-    # pm.ground_truth_view_analysis(view_x=610, view_y=810, save_data=True)
 
-    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(510, 250)])
-    # pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (510, 250)")
-
-    pos = "(630, 670)"
-    x = "original"
-    image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
-    ybound = [-900, -275]
+    # pos = "(550, 560)"
+    # ybound = [-1400, -350]
     #
-    # pm.rFF_plot(pm.get_route_rFF(image), ylim=[-1400, -400],
-    #             title=f"PM rFF of view at {pos}: {x}", save_data=False)
+    pos = "(630, 670)"
+    ybound = [-900, -275]
+
+    x = "missing horizon information"
+    image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
+
     pm.rFF_plot(pm.normalize(pm.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
-                title=f"PM rFF of view at {pos} {x}", save_data=False)
+                title=f"PM rFF of view ({x}) at {pos} vs route memories", save_data=True)
