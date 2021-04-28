@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import os
 
 class PerfectMemory(AnalysisToolkit):
     def __init__(self, route, vis_deg, rot_deg):
@@ -60,6 +61,10 @@ if __name__ == "__main__":
 
     pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=8)
 
+
+
+
+
     # Database analysis
     # pm.database_analysis(spacing=20, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
@@ -68,6 +73,10 @@ if __name__ == "__main__":
     # pm.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv",
     #                                spacing=20, locationality=True,
     #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
+
+
+
+
 
     # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
     # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
@@ -82,6 +91,11 @@ if __name__ == "__main__":
     #                  ["Within route corridor", "Across environment"],
     #                  save_data=True)
     # pm.error_boxplot(["DATABASE_ANALYSIS/PERFECTMEMORY/31-3-2021_18-23-11_ant1_route1_140x740_20.csv"])
+
+
+
+
+
 
     # Route view analysis
     # pm.route_analysis(step=100)
@@ -101,20 +115,29 @@ if __name__ == "__main__":
     # pm.rFF_plot(rFF=rFF, ylim=None, save_data=False)
     # print(pm.get_most_familiar_heading(rFF))
 
-    # coor = [630, 670]
-    # ybound = [-1450, -500]
-    # pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=True)
-    # pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=True)
 
 
-    # pos = "(550, 560)"
-    # ybound = [-1400, -350]
+
+
+    # save_data = False
+    # coor = [540, 470]
+    # save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/PM"
     #
-    pos = "(630, 670)"
-    ybound = [-900, -275]
+    # ybound = [-1250, -550]
+    # pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=save_data)
+    # pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=save_data)
 
-    x = "missing horizon information"
-    image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/{x}.png")
+    # info_loss_ybound = [-700, -275]
+    # pm.gen_info_loss_data(coor=coor, ybound=info_loss_ybound, model_name="PM", save_data=save_data)
 
-    pm.rFF_plot(pm.normalize(pm.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
-                title=f"PM rFF of view ({x}) at {pos} vs route memories", save_data=True)
+
+
+    # on route rFF
+    # idx = 0
+    # view = cv2.imread(pm.route_path + pm.route_filenames[idx])
+    # heading = pm.route_headings[0]
+    # pm.rFF_plot(pm.get_route_rFF(view, heading), "PM rFF")
+
+    # Off route_rFF
+    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(590, 610)])
+    # pm.rFF_plot(pm.get_route_rFF(view), "PM rFF")
