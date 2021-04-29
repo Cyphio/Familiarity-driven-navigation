@@ -348,23 +348,23 @@ class AnalysisToolkit(FunctionToolkit):
 
         plt.show()
 
-    def get_colour_map(self, data_path_1, data_path_2, spacing, bounds=None, save_path="DATABASE_ANALYSIS", save_data=False):
+    def get_colour_map(self, pm_data_path, mlp_data_path, spacing, bounds=None, save_path="DATABASE_ANALYSIS", save_data=False):
         if bounds is None:
             bounds = self.bounds
 
         x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
         y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
 
-        df_1 = pd.read_csv(open(data_path_1))
-        df_1["ABS_HEADING_ERROR"] = self.absolute_errors(data_path_1)
-        df_2 = pd.read_csv(open(data_path_2))
-        df_2["ABS_HEADING_ERROR"] = self.absolute_errors(data_path_2)
+        pm_df = pd.read_csv(open(pm_data_path))
+        pm_df["ABS_HEADING_ERROR"] = self.absolute_errors(pm_data_path)
+        mlp_df = pd.read_csv(open(mlp_data_path))
+        mlp_df["ABS_HEADING_ERROR"] = self.absolute_errors(mlp_data_path)
 
-        df = pd.merge(df_1, df_2, how='inner', on=["X_COOR", "Y_COOR"])
-        df["HEADING_DIFF"] = df["ABS_HEADING_ERROR_x"] - df["ABS_HEADING_ERROR_y"]
+        diff_df = pd.merge(pm_df, mlp_df, how='inner', on=["X_COOR", "Y_COOR"])
+        diff_df["HEADING_DIFF"] = diff_df["ABS_HEADING_ERROR_x"] - diff_df["ABS_HEADING_ERROR_y"]
 
         # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-        #     print(df)
+        #     print(diff_df)
 
         fig = plt.figure(figsize=(len(x_ticks)+5, len(y_ticks)))
         ax = fig.add_subplot()
@@ -376,15 +376,15 @@ class AnalysisToolkit(FunctionToolkit):
         ax.set_prop_cycle('color', line_map)
         [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
 
-        diff_cm = plt.cm.get_cmap('inferno')
-        sc = ax.scatter(x=df["X_COOR"], y=df["Y_COOR"], c=df["HEADING_DIFF"], s=700, cmap=diff_cm)
+        diff_cm = plt.cm.get_cmap('RdYlGn')
+        shifted_diff_cm = self.shift_colour_map(diff_cm, midpoint=0.21)
+        sc = ax.scatter(x=diff_df["X_COOR"], y=diff_df["Y_COOR"], c=diff_df["HEADING_DIFF"], s=700, cmap=shifted_diff_cm)
         cbar = plt.colorbar(sc)
         for t in cbar.ax.get_yticklabels():
             t.set_fontsize(30)
         cbar.ax.get_yaxis().labelpad = 55
-        # cbar.ax.set_ylabel("Deviation between MLP & PM absolute heading errors. "
-        #                    "Positive deviation indicates MLP outperforming PM", rotation=270, fontsize=50)
-        cbar.ax.set_ylabel("Absolute difference in heading errors between PM and MLP", rotation=270, fontsize=50)
+        cbar.ax.set_ylabel("MLP abs heading error subtracted from PM abs heading error. "
+                           "Green indicates MLP outperforming PM", rotation=270, fontsize=50)
 
         ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
         ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
@@ -407,7 +407,8 @@ if __name__ == "__main__":
 
     pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
     mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
+    # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"
 
     at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=False)
 
-    # print(at.get_ground_truth_heading(590, 610))
+    # print(at.get_ground_truth_heading(560, 550))
