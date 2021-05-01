@@ -119,16 +119,16 @@ if __name__ == "__main__":
 
 
 
-    # save_data = False
-    # coor = [540, 470]
-    # save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/PM"
-    #
-    # ybound = [-1250, -550]
-    # pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=save_data)
-    # pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], ybound=ybound, save_data=save_data)
+    save_data = True
+    coor = [510, 250]
+    save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/PM"
+
+    ybound = [-1250, -550]
+    pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
+    pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
 
     # info_loss_ybound = [-700, -275]
-    # pm.gen_info_loss_data(coor=coor, ybound=info_loss_ybound, model_name="PM", save_data=save_data)
+    # pm.gen_info_loss_data(coor=coor, ybound=info_loss_ybound, model_name="PM", save_path=save_path, save_data=save_data)
 
 
 
@@ -139,5 +139,11 @@ if __name__ == "__main__":
     # pm.rFF_plot(pm.get_route_rFF(view, heading), "PM rFF")
 
     # Off route_rFF
-    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(590, 610)])
-    # pm.rFF_plot(pm.get_route_rFF(view), "PM rFF")
+    # coor = [550, 350]
+    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(coor[0], coor[1])])
+    # rff = pm.get_route_rFF(view)
+    # min_ = min(rff.values())
+    # max_ = max(rff.values())
+    # pm.rFF_plot(pm.normalize(rff, min=min_, max=max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
+    #             title=f"PM rFF of view at ({coor[0]}, {coor[1]})", save_data=False)
+

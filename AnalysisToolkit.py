@@ -210,7 +210,7 @@ class AnalysisToolkit(FunctionToolkit):
 
         self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
-    def ground_truth_view_analysis(self, view_x, view_y, ybound, view_heading=0, save_data=False):
+    def ground_truth_view_analysis(self, view_x, view_y, ybound=None, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
 
         ground_truth_view_coor = self.get_ground_truth_coor(view_x, view_y)
@@ -219,8 +219,10 @@ class AnalysisToolkit(FunctionToolkit):
         ground_truth_view_heading = self.route_headings[ground_truth_view_idx]
         ground_truth_view = cv2.imread(self.route_path + ground_truth_view_filename)
 
-        rFF = self.normalize(self.get_view_rFF(view, ground_truth_view, view_heading),
-                             min=ybound[0], max=ybound[1])
+        rFF = self.get_view_rFF(view, ground_truth_view, view_heading)
+        if ybound is None:
+            ybound = [min(rFF.values()), max(rFF.values())]
+        rFF = self.normalize(rFF, min=ybound[0], max=ybound[1])
         familiar_heading = self.get_most_familiar_heading(rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
@@ -247,9 +249,9 @@ class AnalysisToolkit(FunctionToolkit):
         plt.show()
 
         self.rFF_plot(rFF=rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs ground truth view",
-                      ylim=[0, 1], ybound=ybound, save_data=save_data)
+                      ylim=[0, 1], ybound=[round(ybound[0]), round(ybound[1])], save_data=save_data)
 
-    def best_matched_view_analysis(self, view_x, view_y, ybound, view_heading=0, save_data=False):
+    def best_matched_view_analysis(self, view_x, view_y, ybound=None, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
 
         matched_route_view_idx = self.get_matched_route_view_idx(view)
@@ -257,8 +259,10 @@ class AnalysisToolkit(FunctionToolkit):
         matched_route_view_heading = self.route_headings[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)
 
-        route_rFF = self.normalize(self.get_route_rFF(view, view_heading),
-                                  min=ybound[0], max=ybound[1])
+        route_rFF = self.get_route_rFF(view, view_heading)
+        if ybound is None:
+            ybound = [min(route_rFF.values()), max(route_rFF.values())]
+        route_rFF = self.normalize(route_rFF, min=ybound[0], max=ybound[1])
         familiar_heading = self.get_most_familiar_heading(route_rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
@@ -284,7 +288,8 @@ class AnalysisToolkit(FunctionToolkit):
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        self.rFF_plot(rFF=route_rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs route memories", ylim=[0, 1], ybound=ybound, save_data=save_data)
+        self.rFF_plot(rFF=route_rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs route memories", ylim=[0, 1],
+                      ybound=[round(ybound[0]), round(ybound[1])], save_data=save_data)
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, 20, dtype=int)
         y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -20, dtype=int)
@@ -409,6 +414,8 @@ if __name__ == "__main__":
     mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
     # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"
 
-    at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=False)
+    # at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=False)
 
     # print(at.get_ground_truth_heading(560, 550))
+
+    at.error_boxplot([pm_path, mlp_path], ["Perfect memory", "Multi-layer perceptron"], locationality=False, save_data=True)

@@ -244,8 +244,8 @@ class ANN(AnalysisToolkit):
         view_preprocessed = self.preprocess(self.rotate(view, view_heading))
         view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
         self.model(view_tensor)
-        view_layton_space = self.model.get_latent_space()
-        x = {i: torch.cdist(self.route_view_layton_spaces[i], view_layton_space) for i in range(len(self.route_view_layton_spaces))}
+        view_latent_space = self.model.get_latent_space()
+        x = {i: torch.cdist(self.route_view_layton_spaces[i], view_latent_space) for i in range(len(self.route_view_layton_spaces))}
         return min(x, key=x.get)
 
 class MLPModel(nn.Module):
@@ -367,7 +367,7 @@ if __name__ == '__main__':
     # csv_file = "22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
     # ann.show_database_analysis_plot(data_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{csv_file}",
     #                                 spacing=20, locationality=False,
-    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=False)
+    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
 
 
 
@@ -433,11 +433,19 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    # save_data = False
-    # coor = [610, 610]
+    save_data = True
+    coor = [510, 250]
+
+    image = cv2.imread(ann.grid_path + ann.grid_filenames[(coor[0], coor[1])])
+
+    rFF = ann.get_route_rFF(image)
+
     # ybound = [-20, 0]
-    #
-    # image = cv2.imread(ann.grid_path + ann.grid_filenames[(coor[0], coor[1])])
-    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1],
+    # ann.rFF_plot(ann.normalize(rFF, min=ybound[0], max=ybound[1]), ylim=[0, 1],
     #              ybound=ybound, title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
     #              save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
+
+    ann.rFF_plot(ann.normalize(rFF, min=min(rFF.values()), max=max(rFF.values())), ylim=[0, 1],
+                 ybound=[round(min(rFF.values())), round(max(rFF.values()))], title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
+                 save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
+
