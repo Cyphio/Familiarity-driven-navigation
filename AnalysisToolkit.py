@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from FunctionToolkit import FunctionToolkit
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -9,54 +10,19 @@ import datetime
 import csv
 import itertools
 import os
+import seaborn as sns
 
-class AnalysisToolkit:
+class AnalysisToolkit(FunctionToolkit):
     def __init__(self, route, vis_deg, rot_deg):
-        self.route_name = route
-        self.vis_deg = vis_deg
-        self.rot_deg = rot_deg
+        FunctionToolkit.__init__(self, route, vis_deg, rot_deg)
 
         time = datetime.datetime.now()
         self.time = "%s-%s-%s_%s-%s-%s" % (time.day, time.month, time.year, time.hour, time.minute, time.second)
 
-        self.topdown_view = plt.imread("ant_world_image_databases/topdown_view.png")
-        self.grid_path = "ant_world_image_databases/grid/"
-        grid_data = pd.read_csv("ant_world_image_databases/grid/database_entries.csv", skipinitialspace=True)
-        self.grid_X = [int(x/10) for x in np.array(grid_data['X [mm]'])]
-        self.grid_Y = [int(y/10) for y in np.array(grid_data['Y [mm]'])]
-        self.grid_filenames = {(int(grid_data['X [mm]'][idx]/10), int(grid_data['Y [mm]'][idx]/10)): filename
-                               for idx, filename in enumerate(grid_data['Filename'])}
-
-        self.route_path = "ant_world_image_databases/routes/"+route+"/"
-        route_data = pd.read_csv(self.route_path+"database_entries.csv", skipinitialspace=True)
-        self.route_filenames = np.array(route_data['Filename'])
-        self.route_X = [int(x/10) for x in np.array(route_data['X [mm]'])]
-        self.route_Y = [int(y/10) for y in np.array(route_data["Y [mm]"])]
-        self.route_headings = np.array([int(rot_deg * round(float(heading)/rot_deg)) for heading in route_data['Heading [degrees]']])
-
-        self.bounds = [[int((np.floor((min(self.route_X) / 10)) * 10)), int((np.floor((min(self.route_Y) / 10)) * 10))],
-                        [int((np.ceil((max(self.route_X) / 10)) * 10)), int((np.ceil((max(self.route_Y) / 10)) * 10))]]
-
-    def preprocess(self, view):
-        view = cv2.cvtColor(view, cv2.COLOR_BGR2GRAY)
-        return cv2.resize(view, (45, 8))
-
-    def rotate(self, view, angle):
-        return np.roll(view, int(view.shape[1] * (angle / self.vis_deg)), axis=1)
-
-    def image_difference(self, minuend, subtrahend):
-        return abs(minuend.astype("float") - subtrahend.astype("float"))
-
-    def get_ground_truth_coor(self, x, y):
-        return min(zip(self.route_X, self.route_Y), key=lambda route_coor: ((route_coor[0] - x) ** 2 + (route_coor[1] - y) ** 2))
-
-    def get_ground_truth_heading(self, x, y):
-        return self.route_headings[list(zip(self.route_X, self.route_Y)).index(self.get_ground_truth_coor(x, y))]
-
     def save_plot(self, plot, path="", filename=""):
         if not os.path.isdir(path):
             os.makedirs(path)
-        plot.savefig(f"{path}/{str(self.time)}_{filename}.png")
+        plot.savefig(f"{path}/{filename} {str(self.time)}.png")
 
     def save_dict_as_CSV(self, data, path="", filename=""):
         keys = data[0].keys()
@@ -70,23 +36,38 @@ class AnalysisToolkit:
         except IOError:
             print("I/O error")
 
-    def rFF_plot(self, rFF, title, ylim=None, save_data=False):
-        plt.plot(*zip(*sorted(rFF.items())))
+    def rFF_plot(self, rFF, title, ylim=None, ybound=None, save_path="VIEW_ANALYSIS", save_data=False):
+        fig, ax = plt.subplots()
+        ax.plot(*zip(*sorted(rFF.items())))
         plt.title(f"{title}\n"
                   f"Confidence: {round(self.get_signal_strength(rFF), 3)}, "
-                  f"Maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°")
+                  f"(Median) maximum: {round(max(rFF.values()), 3)} @ {self.get_most_familiar_heading(rFF)}°", wrap=True)
         plt.ylabel("Familiarity score")
         plt.xlabel("Angle")
         plt.xticks(np.arange(0, 361, 15), rotation=90)
         if ylim is not None:
             buffer = (ylim[1]-ylim[0])*0.05
             plt.ylim(ylim[0]-buffer, ylim[1]+buffer)
+        if ybound is not None:
+            ax.set_yticks(np.arange(0, 1.1, 0.2))
+            ax.set_yticklabels([f"{ybound[0]}, 0.0", "0.2", "0.4", "0.6", "0.8", f"{ybound[1]}, 1.0"])
         plt.xlim(0, 360)
         plt.grid(which='major', axis='both', linestyle=':')
-        plt.tight_layout()
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.85)
         if save_data:
-            self.save_plot(plt, "VIEW_ANALYSIS/", title)
+            self.save_plot(plt, save_path, title)
         plt.show()
+
+    def gen_info_loss_data(self, coor, ybound, model_name, save_path, save_data=False):
+        pos = f"({coor[0]}, {coor[1]})"
+        for filename in os.listdir(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/IMAGES"):
+            x = os.path.splitext(filename)[0]
+            print(x)
+            image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/IMAGES/{x}.png")
+            self.rFF_plot(self.normalize(self.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
+                          title=f"{model_name} rFF of view ({x}) at {pos} vs route memories",
+                          save_path=save_path, save_data=save_data)
 
     def database_analysis(self, spacing, bounds=None, corridor=None, save_path="DATABASE_ANALYSIS", save_data=False):
         if bounds is None:
@@ -167,40 +148,6 @@ class AnalysisToolkit:
             self.save_plot(plt, save_path, filename)
         plt.show()
 
-    def normalize(self, d, min, max=0):
-        return {k: ((v - min) / (max - min)) for k, v in d.items()}
-
-    def avg_absolute_error(self, data_path):
-        data = csv.DictReader(open(data_path))
-        errors = []
-        for row in data:
-            real_heading = self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR']))
-            errors.append(abs(real_heading - int(row['HEADING'])))
-        return float(np.mean(errors))
-
-    def directionally_correct(self, data_path):
-        threshold = 20
-        data = csv.DictReader(open(data_path))
-        correct_count, total_count = 0, 0
-        for row in data:
-            real_heading = self.get_ground_truth_heading(int(row['X_COOR']), int(row['Y_COOR']))
-            correct_count += int((real_heading - threshold) % self.vis_deg <= int(row['HEADING']) <= (real_heading + threshold) % self.vis_deg)
-            total_count += 1
-        return (correct_count/total_count)*100
-
-    def locationally_correct(self, data_path):
-        threshold = 75
-        data = csv.DictReader(open(data_path))
-        correct_count, total_count = 0, 0
-        for row in data:
-            ground_truth_view_coor = self.get_ground_truth_coor(int(row['X_COOR']), int(row['Y_COOR']))
-            matched_route_view_coor = list(zip(self.route_X, self.route_Y))[int(row['MATCHED_ROUTE_VIEW_IDX'])]
-            correct_count += int((np.sqrt((np.square(ground_truth_view_coor[0] - matched_route_view_coor[0])) +
-                                          (np.square(ground_truth_view_coor[1] - matched_route_view_coor[1])))) <= threshold)
-
-            total_count += 1
-        return (correct_count/total_count)*100
-
     def error_boxplot(self, data_paths, index_titles=None, locationality=True, save_data=False):
         heading_errors = []
         indexes = []
@@ -239,7 +186,7 @@ class AnalysisToolkit:
         rFF = self.get_view_rFF(view_1, view_2, view_1_heading)
         familiar_heading = self.get_most_familiar_heading(rFF)
 
-        rotated_view = np.roll(view_1, int(view_1.shape[1] * ((familiar_heading - view_1_heading) / self.vis_deg)), axis=1)
+        rotated_view = self.rotate(view_1, familiar_heading-view_1_heading)
 
         rotated_view_downsampled = self.preprocess(rotated_view)
         view_2_downsampled = self.preprocess(view_2)
@@ -263,7 +210,7 @@ class AnalysisToolkit:
 
         self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
 
-    def ground_truth_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+    def ground_truth_view_analysis(self, view_x, view_y, ybound=None, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x, view_y)))
 
         ground_truth_view_coor = self.get_ground_truth_coor(view_x, view_y)
@@ -273,6 +220,9 @@ class AnalysisToolkit:
         ground_truth_view = cv2.imread(self.route_path + ground_truth_view_filename)
 
         rFF = self.get_view_rFF(view, ground_truth_view, view_heading)
+        if ybound is None:
+            ybound = [min(rFF.values()), max(rFF.values())]
+        rFF = self.normalize(rFF, min=ybound[0], max=ybound[1])
         familiar_heading = self.get_most_familiar_heading(rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
@@ -286,53 +236,60 @@ class AnalysisToolkit:
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading: {familiar_heading}, ground truth offset: {abs(familiar_heading-ground_truth_view_heading)}")
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading vs ground truth view: {familiar_heading}°")
         ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title(f"Ground truth route view: {ground_truth_view_filename} at heading: {ground_truth_view_heading}")
+        ax[1].set_title(f"Ground truth route view: {ground_truth_view_filename} at pose: "
+                        f"({ground_truth_view_coor[0]}, {ground_truth_view_coor[1]}), {ground_truth_view_heading}°")
         ax[1].imshow(cv2.cvtColor(ground_truth_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
-            filename = "IMG_DIFF"
+            filename = "REALMATCH_IMG_DIFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        self.rFF_plot(rFF=rFF, title="rFF", ylim=None, save_data=save_data)
+        self.rFF_plot(rFF=rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs ground truth view",
+                      ylim=[0, 1], ybound=[round(ybound[0]), round(ybound[1])], save_data=save_data)
 
-    def best_matched_view_analysis(self, view_x, view_y, view_heading=0, save_data=False):
+    def best_matched_view_analysis(self, view_x, view_y, ybound=None, view_heading=0, save_data=False):
         view = cv2.imread(self.grid_path + self.grid_filenames.get((view_x,view_y)))
-        route_rFF = self.get_route_rFF(view, view_heading)
 
-        familiar_heading = self.get_most_familiar_heading(route_rFF)
-
-        matched_route_view_idx = self.get_matched_route_view_idx(route_rIDF)
+        matched_route_view_idx = self.get_matched_route_view_idx(view)
         matched_route_view_filename = self.route_filenames[matched_route_view_idx]
         matched_route_view_heading = self.route_headings[matched_route_view_idx]
         matched_route_view = cv2.imread(self.route_path + matched_route_view_filename)
-        matched_route_view_downsampled = self.preprocess(matched_route_view)
 
-        rotated_view = np.roll(view, int(view.shape[1] * ((familiar_heading - view_heading) / self.vis_deg)), axis=1)
+        route_rFF = self.get_route_rFF(view, view_heading)
+        if ybound is None:
+            ybound = [min(route_rFF.values()), max(route_rFF.values())]
+        route_rFF = self.normalize(route_rFF, min=ybound[0], max=ybound[1])
+        familiar_heading = self.get_most_familiar_heading(route_rFF)
+
+        rotated_view = self.rotate(view, familiar_heading-view_heading)
+
+        matched_route_view_downsampled = self.preprocess(matched_route_view)
         rotated_view_downsampled = self.preprocess(rotated_view)
 
         image_difference = self.image_difference(rotated_view_downsampled, matched_route_view_downsampled)
-        view_rFF = self.get_view_rFF(rotated_view, matched_route_view, familiar_heading)
 
-        plt.figure(dpi=750)
+        plt.figure()
         fig, ax = plt.subplots(3, 1)
         fig.tight_layout(pad=2.0, w_pad=0)
 
-        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading: {familiar_heading}, best match offset: {abs(familiar_heading-matched_route_view_heading)}")
+        ax[0].set_title(f"View at: ({view_x}, {view_y}) at familiar heading vs route memories: {familiar_heading}°")
         ax[0].imshow(cv2.cvtColor(rotated_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
-        ax[1].set_title(f"Best matched route view: {matched_route_view_filename} at heading: {matched_route_view_heading}")
+        ax[1].set_title(f"Best matched route view: {matched_route_view_filename} at pose: "
+                        f"({self.route_X[matched_route_view_idx]}, {self.route_Y[matched_route_view_idx]}), {matched_route_view_heading}°")
         ax[1].imshow(cv2.cvtColor(matched_route_view_downsampled.astype(np.uint8), cv2.COLOR_BGR2RGB))
         ax[2].set_title("Image difference")
         ax[2].imshow(cv2.cvtColor(image_difference.astype(np.uint8), cv2.COLOR_BGR2RGB))
         if save_data:
-            filename = "IMG_DIFF"
+            filename = "BESTMATCH_IMG_DIFF"
             self.save_plot(plt, "VIEW_ANALYSIS/", filename)
         plt.show()
 
-        self.rFF_plot(rFF=view_rFF, title="rFF", ylim=None, save_data=save_data)
+        self.rFF_plot(rFF=route_rFF, title=f"PM rFF of view at ({view_x}, {view_y}) vs route memories", ylim=[0, 1],
+                      ybound=[round(ybound[0]), round(ybound[1])], save_data=save_data)
 
         x_ticks = np.arange(self.bounds[0][0], self.bounds[1][0] + 1, 20, dtype=int)
         y_ticks = np.arange(self.bounds[1][1], self.bounds[0][1] - 1, -20, dtype=int)
@@ -395,3 +352,70 @@ class AnalysisToolkit:
         self.save_plot(plt, "MISC/", filename)
 
         plt.show()
+
+    def get_colour_map(self, pm_data_path, mlp_data_path, spacing, bounds=None, save_path="DATABASE_ANALYSIS", save_data=False):
+        if bounds is None:
+            bounds = self.bounds
+
+        x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+
+        pm_df = pd.read_csv(open(pm_data_path))
+        pm_df["ABS_HEADING_ERROR"] = self.absolute_errors(pm_data_path)
+        mlp_df = pd.read_csv(open(mlp_data_path))
+        mlp_df["ABS_HEADING_ERROR"] = self.absolute_errors(mlp_data_path)
+
+        diff_df = pd.merge(pm_df, mlp_df, how='inner', on=["X_COOR", "Y_COOR"])
+        diff_df["HEADING_DIFF"] = diff_df["ABS_HEADING_ERROR_x"] - diff_df["ABS_HEADING_ERROR_y"]
+
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        #     print(diff_df)
+
+        fig = plt.figure(figsize=(len(x_ticks)+5, len(y_ticks)))
+        ax = fig.add_subplot()
+
+        ax.imshow(self.topdown_view)
+
+        route_cm = plt.get_cmap('YlOrRd')
+        line_map = [route_cm(1. * i / len(self.route_X)) for i in range(len(self.route_X))]
+        ax.set_prop_cycle('color', line_map)
+        [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
+
+        diff_cm = plt.cm.get_cmap('RdYlGn')
+        shifted_diff_cm = self.shift_colour_map(diff_cm, midpoint=0.21)
+        sc = ax.scatter(x=diff_df["X_COOR"], y=diff_df["Y_COOR"], c=diff_df["HEADING_DIFF"], s=700, cmap=shifted_diff_cm)
+        cbar = plt.colorbar(sc)
+        for t in cbar.ax.get_yticklabels():
+            t.set_fontsize(30)
+        cbar.ax.get_yaxis().labelpad = 55
+        cbar.ax.set_ylabel("MLP abs heading error subtracted from PM abs heading error. "
+                           "Green indicates MLP outperforming PM", rotation=270, fontsize=50)
+
+        ax.xaxis.set_major_locator(plticker.FixedLocator(x_ticks))
+        ax.yaxis.set_major_locator(plticker.FixedLocator(y_ticks))
+        ax.grid(which='major', axis='both', linestyle=':')
+        ax.set_xlim([bounds[0][0], bounds[1][0]])
+        ax.set_ylim([bounds[0][1], bounds[1][1]])
+        ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
+        ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+
+        plt.tight_layout()
+
+        if save_data:
+            filename = "COLOUR_PLOT"
+            self.save_plot(plt, save_path, filename)
+        plt.show()
+
+if __name__ == "__main__":
+    route_name = "ant1_route1"
+    at = AnalysisToolkit(route=route_name, vis_deg=360, rot_deg=8)
+
+    pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
+    mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
+    # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"
+
+    # at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=False)
+
+    # print(at.get_ground_truth_heading(560, 550))
+
+    at.error_boxplot([pm_path, mlp_path], ["Perfect memory", "Multi-layer perceptron"], locationality=False, save_data=True)

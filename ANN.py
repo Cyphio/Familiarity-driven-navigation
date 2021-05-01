@@ -228,14 +228,12 @@ class ANN(AnalysisToolkit):
             rFF[(i + view_1_heading) % self.vis_deg] = pos_tag_val.item()
         return rFF
 
-    # Get the most familiar heading given an rIDF for a view
+    # Get the most familiar heading given an rFF for a view
     def get_most_familiar_heading(self, rFF):
-        # print(rFF)
-        # consec = [k1 for k1, k2 in zip(list(rFF.keys()), list(rFF.keys())[1:])
-        #           if np.round(rFF[k1], 1) == np.round(max(rFF.values()), 1)
-        #           and np.round(rFF[k1], 1) == np.round(rFF[k2], 1)]
-        # print(consec)
-        return max(rFF, key=rFF.get)
+        # return max(rFF, key=rFF.get)
+        # x = [k for k, v in rFF.items() if 0.8*max(rFF.values()) <= v <= 1.2*max(rFF.values())]
+        x = [k for k, v in rFF.items() if self.is_within_prcnt(v, max(rFF.values()), 1.0)]
+        return np.median(x).astype(np.int64)
 
     # Calculates the signal strength of an rFF
     def get_signal_strength(self, rFF):
@@ -246,8 +244,8 @@ class ANN(AnalysisToolkit):
         view_preprocessed = self.preprocess(self.rotate(view, view_heading))
         view_tensor = self.transform(Image.fromarray(view_preprocessed)).float().to(self.device).view(1, self.INPUT_SIZE)
         self.model(view_tensor)
-        view_layton_space = self.model.get_latent_space()
-        x = {i: torch.cdist(self.route_view_layton_spaces[i], view_layton_space) for i in range(len(self.route_view_layton_spaces))}
+        view_latent_space = self.model.get_latent_space()
+        x = {i: torch.cdist(self.route_view_layton_spaces[i], view_latent_space) for i in range(len(self.route_view_layton_spaces))}
         return min(x, key=x.get)
 
 class MLPModel(nn.Module):
@@ -339,20 +337,24 @@ class RBF(nn.Module):
 
 
 if __name__ == '__main__':
-    ANN_flag = "RBFNN"
+    ANN_flag = "MLP"
     route_name = "ant1_route1"
     data_path = "90_DEGREES_DATA"
-    model_name = "atomic-puddle-77"
+    model_name = "tough-paper-74"
 
     ann = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
               test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
     # ann.gen_data(angle=0, is_random=True, split=0.2)
-    ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
+    # ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
 
-    # ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
+    ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
     # ann.test_model()
+
+
+
+
 
     # Database analysis
     # ann.database_analysis(spacing=20,
@@ -361,22 +363,32 @@ if __name__ == '__main__':
     #                       save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
     # ann.database_analysis(spacing=20, corridor=30,
     #                       save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
-    # ann.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/2-4-2021_18-11-29_ant1_route1_140x740_20.csv",
+
+    # csv_file = "22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
+    # ann.show_database_analysis_plot(data_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{csv_file}",
     #                                 spacing=20, locationality=False,
-    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=False)
+    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
+
+
+
+
 
     # indexes = [f"neg examples taken {deg} degrees off-route" for deg in [0, 10, 20, 45, 60, 90, 120, 180]]
     # indexes.append("neg examples taken randomly off-route")
-    # ann.error_boxplot(["DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_0_DEGREES_DATA/10-4-2021_19-27-16_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_10_DEGREES_DATA/10-4-2021_19-28-40_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_20_DEGREES_DATA/10-4-2021_19-29-19_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_45_DEGREES_DATA/10-4-2021_19-29-47_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_60_DEGREES_DATA/10-4-2021_19-30-16_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/10-4-2021_19-30-43_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_120_DEGREES_DATA/10-4-2021_19-32-9_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_180_DEGREES_DATA/10-4-2021_19-32-38_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/10-4-2021_19-33-6_ant1_route1_140x740_20.csv"],
-    #                   indexes, locationality=False, save_data=False)
+    # ann.error_boxplot(["DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_0_DEGREES_DATA/22-4-2021_14-18-46_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_10_DEGREES_DATA/22-4-2021_14-19-36_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_20_DEGREES_DATA/22-4-2021_14-20-16_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_45_DEGREES_DATA/22-4-2021_14-20-59_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_60_DEGREES_DATA/22-4-2021_14-21-28_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/22-4-2021_14-2-53_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_120_DEGREES_DATA/22-4-2021_14-21-56_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_180_DEGREES_DATA/22-4-2021_14-22-34_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"],
+    #                   indexes, locationality=False, save_data=True)
+
+
+
+
 
     # Off-route view analysis
     # filename = mlp.grid_filenames.get((500, 500))
@@ -397,22 +409,43 @@ if __name__ == '__main__':
     # Off-route best matched view analysis
     # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)
 
-    # view = cv2.imread(mlp.grid_path + mlp.grid_filenames[(510, 250)])
-    # mlp.rFF_plot(mlp.get_route_rFF(view), title="MLP rFF of view at (510, 250)")
-
-    # original = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/original.png")
-    # lost_left_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_left_tussock.png")
-    # lost_middle_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_middle_tussock.png")
-    # lost_right_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_right_tussock.png")
-    # lost_sky_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_sky_info.png")
-    # lost_ground_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png")
-
-    # ann.rFF_plot(ann.get_route_rFF(lost_ground_info), ylim=[-20, 0],
-    #              title="MLP rFF of view at (550, 560) missing ground information", save_data=True)
-    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(original), min=-20, max=0), ylim=[0, 1],
-    #              title="MLP rFF of view at (550, 560) missing ground information", save_data=False)
 
 
-    # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png"))
+
+
+    # save_data = False
+    # coor = [530, 270]
+    # info_loss_ybound = [-20, -0]
+    # save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/{ANN_flag}/TRAINED_ON_{data_path}"
+
+    # ann.gen_info_loss_data(coor=coor, ybound=info_loss_ybound, model_name=ANN_flag,
+    #                        save_path=save_path, save_data=save_data)
+
+    # x = "original"
+    # image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/IMAGES/{x}.png")
+    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(image), min=info_loss_ybound[0], max=info_loss_ybound[1]), ylim=[0, 1],
+    #              ybound=info_loss_ybound, title=f"{model_name} rFF of view ({x}) at ({coor[0]}, {coor[1]}) vs route memories",
+    #              save_path=save_path, save_data=save_data)
+
+
+    # image = ann.preprocess(cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(610, 610)/IMAGES/only horizon information.png"))
     # plt.imshow(image)
     # plt.show()
+
+
+    save_data = True
+    coor = [510, 250]
+
+    image = cv2.imread(ann.grid_path + ann.grid_filenames[(coor[0], coor[1])])
+
+    rFF = ann.get_route_rFF(image)
+
+    # ybound = [-20, 0]
+    # ann.rFF_plot(ann.normalize(rFF, min=ybound[0], max=ybound[1]), ylim=[0, 1],
+    #              ybound=ybound, title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
+    #              save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
+
+    ann.rFF_plot(ann.normalize(rFF, min=min(rFF.values()), max=max(rFF.values())), ylim=[0, 1],
+                 ybound=[round(min(rFF.values())), round(max(rFF.values()))], title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
+                 save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
+

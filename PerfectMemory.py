@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import os
 
 class PerfectMemory(AnalysisToolkit):
     def __init__(self, route, vis_deg, rot_deg):
@@ -60,6 +61,10 @@ if __name__ == "__main__":
 
     pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=8)
 
+
+
+
+
     # Database analysis
     # pm.database_analysis(spacing=20, save_data=True)
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
@@ -68,6 +73,10 @@ if __name__ == "__main__":
     # pm.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv",
     #                                spacing=20, locationality=True,
     #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
+
+
+
+
 
     # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
     # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
@@ -82,6 +91,11 @@ if __name__ == "__main__":
     #                  ["Within route corridor", "Across environment"],
     #                  save_data=True)
     # pm.error_boxplot(["DATABASE_ANALYSIS/PERFECTMEMORY/31-3-2021_18-23-11_ant1_route1_140x740_20.csv"])
+
+
+
+
+
 
     # Route view analysis
     # pm.route_analysis(step=100)
@@ -101,23 +115,35 @@ if __name__ == "__main__":
     # pm.rFF_plot(rFF=rFF, ylim=None, save_data=False)
     # print(pm.get_most_familiar_heading(rFF))
 
-    # Off-route best matched view analysis
-    # pm.best_matched_view_analysis(view_x=610, view_y=810, save_data=True)
 
-    # Off-route real match view analysis
-    # pm.ground_truth_view_analysis(view_x=610, view_y=810, save_data=True)
 
-    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(510, 250)])
-    # pm.rFF_plot(pm.get_route_rFF(view), title="PM rFF of view at (510, 250)")
 
-    # original = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/original.png")
-    # lost_left_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_left_tussock.png")
-    # lost_middle_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_middle_tussock.png")
-    # lost_right_tussock = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_right_tussock.png")
-    # lost_sky_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_sky_info.png")
-    # lost_ground_info = cv2.imread("VIEW_ANALYSIS/INFO_LOSS_TEST/(550, 560)/lost_ground_info.png")
-    #
-    # pm.rFF_plot(pm.get_route_rFF(lost_ground_info), ylim=[-1400, -400],
-    #             title="PM rFF of view at (550, 560) missing ground information", save_data=True)
-    # pm.rFF_plot(pm.normalize(pm.get_route_rFF(lost_ground_info), min=-1400, max=-400), ylim=[0, 1],
-    #             title="PM rFF of view at (550, 560) missing ground information", save_data=True)
+
+    save_data = True
+    coor = [510, 250]
+    save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/PM"
+
+    ybound = [-1250, -550]
+    pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
+    pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
+
+    # info_loss_ybound = [-700, -275]
+    # pm.gen_info_loss_data(coor=coor, ybound=info_loss_ybound, model_name="PM", save_path=save_path, save_data=save_data)
+
+
+
+    # on route rFF
+    # idx = 0
+    # view = cv2.imread(pm.route_path + pm.route_filenames[idx])
+    # heading = pm.route_headings[0]
+    # pm.rFF_plot(pm.get_route_rFF(view, heading), "PM rFF")
+
+    # Off route_rFF
+    # coor = [550, 350]
+    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(coor[0], coor[1])])
+    # rff = pm.get_route_rFF(view)
+    # min_ = min(rff.values())
+    # max_ = max(rff.values())
+    # pm.rFF_plot(pm.normalize(rff, min=min_, max=max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
+    #             title=f"PM rFF of view at ({coor[0]}, {coor[1]})", save_data=False)
+
