@@ -56,13 +56,10 @@ class PerfectMemory(AnalysisToolkit):
         return min(x, key=x.get)
 
 if __name__ == "__main__":
-    route_name = "ant1_route1"
+    route_name = "ant1_route3"
     resolution = "8_deg_px_res"
 
     pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=8)
-
-
-
 
 
     # Database analysis
@@ -70,9 +67,10 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/8_deg_px_res",
     #                      save_data=True)
-    # pm.show_database_analysis_plot(data_path="DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv",
-    #                                spacing=20, locationality=True,
-    #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
+    csv_file_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
+    pm.show_database_analysis_plot(data_path=csv_file_path,
+                                   spacing=20, locationality=True,
+                                   save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
 
 
 
@@ -81,7 +79,7 @@ if __name__ == "__main__":
     # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
     # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
     # four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
-    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
+    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/PM-ant1_route1.csv"
     # sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv"
     # pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path, sixteen_px_data_path],
     #                  ["1 degree resolution", "2 degree resolution", "4 degree resolution", "8 degree resolution", "16 degree resolution"],
@@ -119,13 +117,13 @@ if __name__ == "__main__":
 
 
 
-    save_data = True
-    coor = [510, 250]
-    save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/PM"
-
-    ybound = [-1250, -550]
-    pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
-    pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
+    # save_data = True
+    # coor = [510, 250]
+    # save_path = f"VIEW_ANALYSIS/INFO_LOSS_TEST/({coor[0]}, {coor[1]})/PM"
+    #
+    # ybound = [-1250, -550]
+    # pm.best_matched_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
+    # pm.ground_truth_view_analysis(view_x=coor[0], view_y=coor[1], save_data=save_data)
 
     # info_loss_ybound = [-700, -275]
     # pm.gen_info_loss_data(coor=coor, ybound=info_loss_ybound, model_name="PM", save_path=save_path, save_data=save_data)

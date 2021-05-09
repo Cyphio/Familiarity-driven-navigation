@@ -82,14 +82,14 @@ class ANN(AnalysisToolkit):
                 if not os.path.isdir(path):
                     os.makedirs(path)
         for filename, view, label in train.values:
-            if random:
+            if is_random:
                 plt.imsave(f"./ANN_DATA/{self.route_name}/RAND_DATA/TRAIN/{label}/{filename}.png",
                            cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
             else:
                 plt.imsave(f"./ANN_DATA/{self.route_name}/{angle}_DEGREES_DATA/TRAIN/{label}/{filename}.png",
                            cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
         for filename, view, label in test.values:
-            if random:
+            if is_random:
                 plt.imsave(f"./ANN_DATA/{self.route_name}/RAND_DATA/TEST/{label}/{filename}.png",
                            cv2.cvtColor(view.astype(np.uint8), cv2.COLOR_BGR2RGB))
             else:
@@ -148,6 +148,13 @@ class ANN(AnalysisToolkit):
 
                 train_epoch_loss += train_loss.item()
                 train_epoch_acc += train_acc.item()
+
+                if save_model and epoch % 10 == 0:
+                    torch.save({
+                        'epoch': epoch,
+                        'model_state_dict': model.state_dict(),
+                        'optimizer_state_dict': optimizer.state_dict(),
+                        'loss': train_loss}, f"{save_path}/{wandb.run.name}_epoch{epoch}.pth")
             with torch.no_grad():
                 model.eval()
                 val_epoch_loss, val_epoch_acc = 0, 0
@@ -176,13 +183,18 @@ class ANN(AnalysisToolkit):
         if save_model:
             if not os.path.isdir(save_path):
                 os.makedirs(save_path)
-            torch.save(model.state_dict(), f"{save_path}/{wandb.run.name}.pth")
+            torch.save({
+                'epoch': self.EPOCHS,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': loss_stats['train'][-1]}, f"{save_path}/{wandb.run.name}_epoch{self.EPOCHS}.pth")
 
     def load_model(self, model_path):
         print("Loading model...")
         model = self.model_class
         model.to(self.device)
-        model.load_state_dict(torch.load(model_path))
+        checkpoint = torch.load(model_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
         self.model = model
         print("Calculating training route view latent spaces...")
         self.route_view_layton_spaces = []
@@ -338,15 +350,15 @@ class RBF(nn.Module):
 
 if __name__ == '__main__':
     ANN_flag = "MLP"
-    route_name = "ant1_route1"
+    route_name = "ant1_route3"
     data_path = "90_DEGREES_DATA"
-    model_name = "tough-paper-74"
+    model_name = "vivid-meadow-82_epoch50"
 
     ann = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
               test_path=f"ANN_DATA/{route_name}/{data_path}/TEST")
 
-    # ann.gen_data(angle=0, is_random=True, split=0.2)
+    # ann.gen_data(angle=90, is_random=False, split=0.2)
     # ann.train_model(save_path=f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_model=True)
 
     ann.load_model(f"ANN_MODELS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{model_name}.pth")
@@ -364,51 +376,65 @@ if __name__ == '__main__':
     # ann.database_analysis(spacing=20, corridor=30,
     #                       save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
 
-    # csv_file = "22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
-    # ann.show_database_analysis_plot(data_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}/{csv_file}",
-    #                                 spacing=20, locationality=False,
-    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
+    csv_file_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
+    ann.show_database_analysis_plot(data_path=csv_file_path,
+                                    spacing=20, locationality=False,
+                                    save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
 
 
 
 
 
-    # indexes = [f"neg examples taken {deg} degrees off-route" for deg in [0, 10, 20, 45, 60, 90, 120, 180]]
-    # indexes.append("neg examples taken randomly off-route")
+    # indexes = [f"neg examples rotated {deg}° off-route" for deg in [0, 10, 20, 45, 60, 90, 120, 180]]
+    # indexes.append("random neg examples")
     # ann.error_boxplot(["DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_0_DEGREES_DATA/22-4-2021_14-18-46_ant1_route1_140x740_20.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_10_DEGREES_DATA/22-4-2021_14-19-36_ant1_route1_140x740_20.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_20_DEGREES_DATA/22-4-2021_14-20-16_ant1_route1_140x740_20.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_45_DEGREES_DATA/22-4-2021_14-20-59_ant1_route1_140x740_20.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_60_DEGREES_DATA/22-4-2021_14-21-28_ant1_route1_140x740_20.csv",
-    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/22-4-2021_14-2-53_ant1_route1_140x740_20.csv",
+    #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/blooming-glitter-79_epoch50-ant1_route1.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_120_DEGREES_DATA/22-4-2021_14-21-56_ant1_route1_140x740_20.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_180_DEGREES_DATA/22-4-2021_14-22-34_ant1_route1_140x740_20.csv",
     #                    "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"],
     #                   indexes, locationality=False, save_data=True)
 
 
-
+    # indexes = [f"MLP, neg examples taken 90° off-route", "PM, 8° resolution"]
+    # ann.error_boxplot(["DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/blooming-glitter-79_epoch50-ant1_route1.csv",
+    #                    "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/8_deg_px_res/PM-ant1_route1.csv"],
+    #                   indexes, save_data=True)
 
 
     # Off-route view analysis
-    # filename = mlp.grid_filenames.get((500, 500))
-    # grid_view = cv2.imread(mlp.grid_path+filename)
+    # coors = (600, 570)
+    # grid_name = ann.grid_filenames.get(coors)
+    # grid_view = cv2.imread(ann.grid_path + grid_name)
     # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
+    # save_data = True
+    # save_path = f"VIEW_ANALYSIS/RFF_OVER_EPOCH/{data_path}"
+    # ybound = [-27, 0]
+    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(grid_view), min=ybound[0], max=ybound[1]), ylim=[0, 1],
+    #              ybound=ybound, title=f"rFF of test view at ({coors[0]}, {coors[1]}) vs route memories at epoch 100",
+    #              save_path=save_path, save_data=save_data)
 
     # On-route view analysis
     # idx = 400
-    # route_view = cv2.imread(mlp.route_path+mlp.route_filenames[idx])
-    # route_heading = mlp.route_headings[idx]
+    # route_name = ann.route_filenames[idx]
+    # route_heading = ann.route_headings[idx]
+    # print(f"FILE: {route_name}, TRUE HEADING: {route_heading}")
+    # route_view = cv2.imread(ann.route_path + route_name)
     # print(mlp.get_matched_route_view_idx(route_view))
     # mlp.view_analysis(view_1=route_view, view_2=route_view, view_1_heading=route_heading, save_data=False)
 
-    # rFF = mlp.get_route_rFF(view=route_view, view_heading=route_heading)
-    # mlp.rFF_plot(rFF=rFF,title="rFF", ylim=None, save_data=False)
-    # print(mlp.get_most_familiar_heading(rFF))
+    # save_data = True
+    # save_path = f"VIEW_ANALYSIS/RFF_OVER_EPOCH/{data_path}"
+    # ybound = [-20, 0]
+    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(route_view, route_heading), min=ybound[0], max=ybound[1]), ylim=[0, 1],
+    #              ybound=ybound, title=f"rFF of training view at ({ann.route_X[idx]}, {ann.route_Y[idx]}) vs route memories at epoch 70",
+    #              save_path=save_path, save_data=save_data)
 
     # Off-route best matched view analysis
     # mlp.best_matched_view_analysis(view_x=610, view_y=810, save_data=False)
-
 
 
 
@@ -433,19 +459,19 @@ if __name__ == '__main__':
     # plt.show()
 
 
-    save_data = True
-    coor = [510, 250]
-
-    image = cv2.imread(ann.grid_path + ann.grid_filenames[(coor[0], coor[1])])
-
-    rFF = ann.get_route_rFF(image)
+    # save_data = True
+    # coor = [510, 250]
+    #
+    # image = cv2.imread(ann.grid_path + ann.grid_filenames[(coor[0], coor[1])])
+    #
+    # rFF = ann.get_route_rFF(image)
 
     # ybound = [-20, 0]
     # ann.rFF_plot(ann.normalize(rFF, min=ybound[0], max=ybound[1]), ylim=[0, 1],
     #              ybound=ybound, title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
     #              save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
 
-    ann.rFF_plot(ann.normalize(rFF, min=min(rFF.values()), max=max(rFF.values())), ylim=[0, 1],
-                 ybound=[round(min(rFF.values())), round(max(rFF.values()))], title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
-                 save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
+    # ann.rFF_plot(ann.normalize(rFF, min=min(rFF.values()), max=max(rFF.values())), ylim=[0, 1],
+    #              ybound=[round(min(rFF.values())), round(max(rFF.values()))], title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
+    #              save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
 

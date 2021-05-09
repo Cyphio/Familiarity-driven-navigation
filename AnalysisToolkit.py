@@ -407,15 +407,15 @@ class AnalysisToolkit(FunctionToolkit):
         plt.show()
 
 if __name__ == "__main__":
-    route_name = "ant1_route1"
+    route_name = "ant1_route3"
     at = AnalysisToolkit(route=route_name, vis_deg=360, rot_deg=8)
 
-    pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/8_deg_px_res/16-3-2021_19-18-9_ant1_route1_140x740_20.csv"
-    mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_90_DEGREES_DATA/22-4-2021_14-2-53_ant1_route1_140x740_20.csv"
+    pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
+    mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
     # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"
 
-    # at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=False)
+    at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=True)
 
     # print(at.get_ground_truth_heading(560, 550))
 
-    at.error_boxplot([pm_path, mlp_path], ["Perfect memory", "Multi-layer perceptron"], locationality=False, save_data=True)
+    at.error_boxplot([pm_path, mlp_path], ["Perfect Memory", "Multi-Layer Perceptron"], locationality=False, save_data=True)
