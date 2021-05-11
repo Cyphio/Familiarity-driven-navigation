@@ -350,9 +350,9 @@ class RBF(nn.Module):
 
 if __name__ == '__main__':
     ANN_flag = "MLP"
-    route_name = "ant1_route3"
+    route_name = "ant1_route1"
     data_path = "90_DEGREES_DATA"
-    model_name = "vivid-meadow-82_epoch50"
+    model_name = "blooming-glitter-79_epoch50"
 
     ann = ANN(route=route_name, vis_deg=360, rot_deg=8, ANN_flag=ANN_flag,
               train_path=f"ANN_DATA/{route_name}/{data_path}/TRAIN",
@@ -365,7 +365,7 @@ if __name__ == '__main__':
     # ann.test_model()
 
 
-
+    # ann.scatter_confidence_against_error(spacing=20, corridor=30, save_data=True)
 
 
     # Database analysis
@@ -376,10 +376,10 @@ if __name__ == '__main__':
     # ann.database_analysis(spacing=20, corridor=30,
     #                       save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
 
-    csv_file_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
-    ann.show_database_analysis_plot(data_path=csv_file_path,
-                                    spacing=20, locationality=False,
-                                    save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
+    # csv_file_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
+    # ann.show_database_analysis_plot(data_path=csv_file_path,
+    #                                 spacing=20, locationality=False,
+    #                                 save_path=f"DATABASE_ANALYSIS/{ANN_flag}/{route_name}/TRAINED_ON_{data_path}", save_data=True)
 
 
 
@@ -406,16 +406,21 @@ if __name__ == '__main__':
 
 
     # Off-route view analysis
-    # coors = (600, 570)
-    # grid_name = ann.grid_filenames.get(coors)
-    # grid_view = cv2.imread(ann.grid_path + grid_name)
+    coors = (630, 590)
+    grid_name = ann.grid_filenames.get(coors)
+    grid_view = cv2.imread(ann.grid_path + grid_name)
     # mlp.view_analysis(view_1=grid_view, view_2=grid_view, save_data=False)
-    # save_data = True
-    # save_path = f"VIEW_ANALYSIS/RFF_OVER_EPOCH/{data_path}"
+    save_data = True
+    rff = ann.get_route_rFF(grid_view)
     # ybound = [-27, 0]
-    # ann.rFF_plot(ann.normalize(ann.get_route_rFF(grid_view), min=ybound[0], max=ybound[1]), ylim=[0, 1],
+    # ann.rFF_plot(ann.normalize(rFF, min_=ybound[0], max_=ybound[1]), ylim=[0, 1],
     #              ybound=ybound, title=f"rFF of test view at ({coors[0]}, {coors[1]}) vs route memories at epoch 100",
     #              save_path=save_path, save_data=save_data)
+    min_ = min(rff.values())
+    max_ = max(rff.values())
+    ann.rFF_plot(ann.normalize(rff, min_, max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
+                 title=f"MLP rFF of view at ({coors[0]}, {coors[1]}) vs route memories",
+                 save_data=save_data)
 
     # On-route view analysis
     # idx = 400
@@ -474,4 +479,3 @@ if __name__ == '__main__':
     # ann.rFF_plot(ann.normalize(rFF, min=min(rFF.values()), max=max(rFF.values())), ylim=[0, 1],
     #              ybound=[round(min(rFF.values())), round(max(rFF.values()))], title=f"{ann.model_name} rFF of view at ({coor[0]}, {coor[1]}) vs route memories",
     #              save_path="VIEW_ANALYSIS/BESTMATCH_VS_REALMATCH", save_data=save_data)
-

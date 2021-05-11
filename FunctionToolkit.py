@@ -50,8 +50,12 @@ class FunctionToolkit:
     def get_ground_truth_heading(self, x, y):
         return self.route_headings[list(zip(self.route_X, self.route_Y)).index(self.get_ground_truth_coor(x, y))]
 
-    def normalize(self, d, min, max=0):
-        return {k: ((v - min) / (max - min)) for k, v in d.items()}
+    def normalize(self, d, min_=None, max_=None):
+        if min_ is None:
+            min_ = min(d.values())
+        if max_ is None:
+            max_ = max(d.values())
+        return {k: ((v - min_) / (max_ - min_)) for k, v in d.items()}
 
     def is_within_prcnt(self, a, b, prcnt):
         if b == 0:

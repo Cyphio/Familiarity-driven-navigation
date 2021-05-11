@@ -65,7 +65,7 @@ class AnalysisToolkit(FunctionToolkit):
             x = os.path.splitext(filename)[0]
             print(x)
             image = cv2.imread(f"VIEW_ANALYSIS/INFO_LOSS_TEST/{pos}/IMAGES/{x}.png")
-            self.rFF_plot(self.normalize(self.get_route_rFF(image), min=ybound[0], max=ybound[1]), ylim=[0, 1], ybound=ybound,
+            self.rFF_plot(self.normalize(self.get_route_rFF(image), min_=ybound[0], max_=ybound[1]), ylim=[0, 1], ybound=ybound,
                           title=f"{model_name} rFF of view ({x}) at {pos} vs route memories",
                           save_path=save_path, save_data=save_data)
 
@@ -142,6 +142,8 @@ class AnalysisToolkit(FunctionToolkit):
         ax.set_ylim([bounds[0][1], bounds[1][1]])
         ax.set_xticklabels(x_ticks, rotation=90, fontsize=20)
         ax.set_yticklabels(y_ticks, rotation=0, fontsize=20)
+
+        plt.tight_layout()
 
         if save_data:
             filename = f"{self.route_name}_{str(np.ptp(x_ticks))}x{str(np.ptp(y_ticks))}_{str(spacing)}"
@@ -222,7 +224,7 @@ class AnalysisToolkit(FunctionToolkit):
         rFF = self.get_view_rFF(view, ground_truth_view, view_heading)
         if ybound is None:
             ybound = [min(rFF.values()), max(rFF.values())]
-        rFF = self.normalize(rFF, min=ybound[0], max=ybound[1])
+        rFF = self.normalize(rFF, min_=ybound[0], max_=ybound[1])
         familiar_heading = self.get_most_familiar_heading(rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
@@ -262,7 +264,7 @@ class AnalysisToolkit(FunctionToolkit):
         route_rFF = self.get_route_rFF(view, view_heading)
         if ybound is None:
             ybound = [min(route_rFF.values()), max(route_rFF.values())]
-        route_rFF = self.normalize(route_rFF, min=ybound[0], max=ybound[1])
+        route_rFF = self.normalize(route_rFF, min_=ybound[0], max_=ybound[1])
         familiar_heading = self.get_most_familiar_heading(route_rFF)
 
         rotated_view = self.rotate(view, familiar_heading-view_heading)
@@ -382,7 +384,7 @@ class AnalysisToolkit(FunctionToolkit):
         [ax.plot(self.route_X[i:i + 2], self.route_Y[i:i + 2], linewidth=4) for i in range(len(line_map))]
 
         diff_cm = plt.cm.get_cmap('RdYlGn')
-        shifted_diff_cm = self.shift_colour_map(diff_cm, midpoint=0.21)
+        shifted_diff_cm = self.shift_colour_map(diff_cm, midpoint=0.26)
         sc = ax.scatter(x=diff_df["X_COOR"], y=diff_df["Y_COOR"], c=diff_df["HEADING_DIFF"], s=700, cmap=shifted_diff_cm)
         cbar = plt.colorbar(sc)
         for t in cbar.ax.get_yticklabels():
@@ -406,16 +408,63 @@ class AnalysisToolkit(FunctionToolkit):
             self.save_plot(plt, save_path, filename)
         plt.show()
 
+    def get_colour_map_data(self, pm_data_path, mlp_data_path, n):
+        pm_df = pd.read_csv(open(pm_data_path))
+        pm_df["ABS_HEADING_ERROR"] = self.absolute_errors(pm_data_path)
+        mlp_df = pd.read_csv(open(mlp_data_path))
+        mlp_df["ABS_HEADING_ERROR"] = self.absolute_errors(mlp_data_path)
+
+        compare_df = pd.DataFrame()
+        compare_df['MLPBetterThanPM'] = np.where(mlp_df["ABS_HEADING_ERROR"] < pm_df["ABS_HEADING_ERROR"], 'True', 'False')
+        compare_df['MLPBetterThanPMByN'] = np.where((pm_df["ABS_HEADING_ERROR"] - mlp_df["ABS_HEADING_ERROR"]) > n, 'True', 'False')
+        fc_1, tc_1 = compare_df.MLPBetterThanPM.value_counts().sort_index().tolist()
+        fc_2, tc_2 = compare_df.MLPBetterThanPMByN.value_counts().sort_index().tolist()
+        return tc_1/(tc_1+fc_1), tc_2/(tc_2+fc_2)
+
+    def scatter_confidence_against_error(self, spacing, bounds=None, corridor=None, save_data=False):
+        if bounds is None:
+            bounds = self.bounds
+
+        x_ticks = np.arange(bounds[0][0], bounds[1][0] + 1, spacing, dtype=int)
+        y_ticks = np.arange(bounds[1][1], bounds[0][1] - 1, -spacing, dtype=int)
+
+        if corridor is not None:
+            quiver_coors = list(itertools.chain.from_iterable([list(zip(np.arange(int((np.floor((x-corridor) / 10) * 10)), int((np.floor((x+corridor) / 10) * 10))+1, spacing, dtype=int), itertools.repeat(y)))
+                                                               for x, y in zip([self.route_X[min(range(len(self.route_Y)), key=lambda i: abs(self.route_Y[i]-y))] for y in y_ticks], y_ticks)]))
+        else:
+            quiver_coors = [(x, y) for x in x_ticks for y in y_ticks]
+
+        signal_strengths = []
+        errors = []
+        for x, y in probar(quiver_coors):
+            view = cv2.imread(self.grid_path + self.grid_filenames.get((x, y)))
+            rFF = self.get_route_rFF(view)
+            rFF = self.normalize(rFF, min_=min(rFF.values()), max_=max(rFF.values()))
+            signal_strengths.append(self.get_signal_strength(rFF))
+            errors.append(abs(self.get_ground_truth_heading(x, y) - self.get_most_familiar_heading(rFF)))
+        plt.scatter(errors, signal_strengths)
+        plt.xlim([-5, 175])
+        plt.xlabel("Absolute heading error")
+        plt.ylim([1, 5.2])
+        plt.ylabel("Confidence")
+        plt.title(f"{self.model_name} confidence against absolute heading error")
+        plt.tight_layout()
+        if save_data:
+            plt.savefig("scatter_plot.png")
+        plt.show()
+
+
 if __name__ == "__main__":
-    route_name = "ant1_route3"
+    route_name = "ant1_route2"
     at = AnalysisToolkit(route=route_name, vis_deg=360, rot_deg=8)
 
     pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
     mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
     # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"
 
-    at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=True)
+    # at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=True)
+    print(at.get_colour_map_data(pm_path, mlp_path, 10))
 
     # print(at.get_ground_truth_heading(560, 550))
 
-    at.error_boxplot([pm_path, mlp_path], ["Perfect Memory", "Multi-Layer Perceptron"], locationality=False, save_data=True)
+    # at.error_boxplot([pm_path, mlp_path], ["Perfect Memory", "Multi-Layer Perceptron"], locationality=False, save_data=True)

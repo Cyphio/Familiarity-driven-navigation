@@ -56,7 +56,7 @@ class PerfectMemory(AnalysisToolkit):
         return min(x, key=x.get)
 
 if __name__ == "__main__":
-    route_name = "ant1_route3"
+    route_name = "ant1_route1"
     resolution = "8_deg_px_res"
 
     pm = PerfectMemory(route=route_name, vis_deg=360, rot_deg=8)
@@ -67,13 +67,12 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/8_deg_px_res",
     #                      save_data=True)
-    csv_file_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
-    pm.show_database_analysis_plot(data_path=csv_file_path,
-                                   spacing=20, locationality=True,
-                                   save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
+    # csv_file_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
+    # pm.show_database_analysis_plot(data_path=csv_file_path,
+    #                                spacing=20, locationality=False,
+    #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
 
-
-
+    # pm.scatter_confidence_against_error(spacing=20, corridor=30, save_data=True)
 
 
     # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
@@ -137,11 +136,11 @@ if __name__ == "__main__":
     # pm.rFF_plot(pm.get_route_rFF(view, heading), "PM rFF")
 
     # Off route_rFF
-    # coor = [550, 350]
-    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(coor[0], coor[1])])
-    # rff = pm.get_route_rFF(view)
-    # min_ = min(rff.values())
-    # max_ = max(rff.values())
-    # pm.rFF_plot(pm.normalize(rff, min=min_, max=max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
-    #             title=f"PM rFF of view at ({coor[0]}, {coor[1]})", save_data=False)
+    coor = [630, 590]
+    view = cv2.imread(pm.grid_path + pm.grid_filenames[(coor[0], coor[1])])
+    rff = pm.get_route_rFF(view)
+    min_ = min(rff.values())
+    max_ = max(rff.values())
+    pm.rFF_plot(pm.normalize(rff, min_, max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
+                title=f"PM rFF of view at ({coor[0]}, {coor[1]}) vs route memories", save_data=True)
 
