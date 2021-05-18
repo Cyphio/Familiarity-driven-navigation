@@ -458,13 +458,13 @@ if __name__ == "__main__":
     route_name = "ant1_route2"
     at = AnalysisToolkit(route=route_name, vis_deg=360, rot_deg=8)
 
-    pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
-    mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
+    # pm_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
+    # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route3/TRAINED_ON_90_DEGREES_DATA/vivid-meadow-82_epoch50.csv"
     # mlp_path = "DATABASE_ANALYSIS/MLP/ant1_route1/TRAINED_ON_RAND_DATA/22-4-2021_14-23-11_ant1_route1_140x740_20.csv"
 
     # at.get_colour_map(pm_path, mlp_path, spacing=20, save_data=True)
-    print(at.get_colour_map_data(pm_path, mlp_path, 10))
+    # print(at.get_colour_map_data(pm_path, mlp_path, 10))
 
-    # print(at.get_ground_truth_heading(560, 550))
+    # print(at.get_ground_truth_heading(610, 610))
 
     # at.error_boxplot([pm_path, mlp_path], ["Perfect Memory", "Multi-Layer Perceptron"], locationality=False, save_data=True)

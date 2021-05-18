@@ -67,19 +67,19 @@ if __name__ == "__main__":
     # pm.database_analysis(spacing=10, bounds=[[490, 370], [550, 460]], save_data=True)
     # pm.database_analysis(spacing=20, corridor=30, save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/8_deg_px_res",
     #                      save_data=True)
-    # csv_file_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route3/8_deg_px_res/PM-ant1_route3.csv"
+    # csv_file_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
     # pm.show_database_analysis_plot(data_path=csv_file_path,
-    #                                spacing=20, locationality=False,
-    #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=True)
+    #                                spacing=20, locationality=True,
+    #                                save_path=f"DATABASE_ANALYSIS/PERFECTMEMORY/{route_name}/{resolution}", save_data=False)
 
     # pm.scatter_confidence_against_error(spacing=20, corridor=30, save_data=True)
 
 
-    # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
-    # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
-    # four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv"
-    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/8_deg_px_res/PM-ant1_route1.csv"
-    # sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv"
+    # one_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/1_deg_px_res/16-3-2021_21-1-3_ant1_route1_140x740_20.csv"
+    # two_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/2_deg_px_res/16-3-2021_19-52-18_ant1_route1_140x740_20.csv"
+    # four_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/4_deg_px_res/15-3-2021_22-1-36_ant1_route1_140x740_20.csv"
+    # eight_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/8_deg_px_res/PM-ant1_route1.csv"
+    # sixteen_px_data_path = "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/16_deg_px_res/16-3-2021_18-58-18_ant1_route1_140x740_20.csv"
     # pm.error_boxplot([one_px_data_path, two_px_data_path, four_px_data_path, eight_px_data_path, sixteen_px_data_path],
     #                  ["1 degree resolution", "2 degree resolution", "4 degree resolution", "8 degree resolution", "16 degree resolution"],
     #                  save_data=True)
@@ -87,7 +87,10 @@ if __name__ == "__main__":
     # pm.error_boxplot([four_px_data_path, four_px_enviro_data_path],
     #                  ["Within route corridor", "Across environment"],
     #                  save_data=True)
-    # pm.error_boxplot(["DATABASE_ANALYSIS/PERFECTMEMORY/31-3-2021_18-23-11_ant1_route1_140x740_20.csv"])
+    # pm.error_boxplot(["DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/4_deg_px_res/16-3-2021_17-36-29_ant1_route1_140x740_20.csv",
+    #                   "DATABASE_ANALYSIS/PERFECTMEMORY/ant1_route1/4_deg_px_res/15-3-2021_22-1-36_ant1_route1_140x740_20.csv"],
+    #                  ["Across environment", "Within route corridor"],
+    #                  save_data=True)
 
 
 
@@ -133,14 +136,20 @@ if __name__ == "__main__":
     # idx = 0
     # view = cv2.imread(pm.route_path + pm.route_filenames[idx])
     # heading = pm.route_headings[0]
-    # pm.rFF_plot(pm.get_route_rFF(view, heading), "PM rFF")
+    # rff = pm.get_route_rFF(view, heading)
+    # min_ = min(rff.values())
+    # max_ = max(rff.values())
+    # pm.rFF_plot(pm.get_route_rFF(view, heading), "Perfect Memory rFF of on route view")
+    # pm.rFF_plot(pm.normalize(rff, min_, max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
+    #             title=f"PM rFF of on route view vs route memories", save_data=True)
+
 
     # Off route_rFF
-    coor = [630, 590]
-    view = cv2.imread(pm.grid_path + pm.grid_filenames[(coor[0], coor[1])])
-    rff = pm.get_route_rFF(view)
-    min_ = min(rff.values())
-    max_ = max(rff.values())
-    pm.rFF_plot(pm.normalize(rff, min_, max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
-                title=f"PM rFF of view at ({coor[0]}, {coor[1]}) vs route memories", save_data=True)
+    # coor = [630, 590]
+    # view = cv2.imread(pm.grid_path + pm.grid_filenames[(coor[0], coor[1])])
+    # rff = pm.get_route_rFF(view)
+    # min_ = min(rff.values())
+    # max_ = max(rff.values())
+    # pm.rFF_plot(pm.normalize(rff, min_, max_), ylim=[0, 1], ybound=[round(min_), round(max_)],
+    #             title=f"PM rFF of view at ({coor[0]}, {coor[1]}) vs route memories", save_data=True)
 
